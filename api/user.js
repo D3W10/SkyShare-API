@@ -97,7 +97,7 @@ router.get("/picture/:username", async (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    console.log(columns[0].value);
+                    res.status(200).json({ code: 200, message: columns[0].value })
                 });
                 request.on("done", () => {
                     connection.close();
