@@ -22,6 +22,7 @@ router.post("/login", async (req, res, next) => {
             connection.connect();
     
             function queryDatabase() {
+                let hasRows = false;
                 const VarChar = require("tedious/lib/data-types/varchar");
 
                 const request = new Request("SP_Login", (error) => {
@@ -31,8 +32,15 @@ router.post("/login", async (req, res, next) => {
                 request.addParameter("Username", VarChar, req.body.username);
                 request.addParameter("Password", VarChar, req.body.password);
 
-                request.on("row", (columns) => res.status(200).json({ code: 200, value: columns }));
-                request.on("done", () => connection.close());
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    res.status(200).json({ code: 200, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value }});
+                });
+                request.on("done", () => {
+                    connection.close();
+                    if (!hasRows)
+                        res.status(400).json({ code: 400, message: "Login details not valid" })
+                });
     
                 connection.callProcedure(request);
             }
@@ -55,6 +63,50 @@ router.post("/signup", async (req, res, next) => {
             res.status(400).json({ code: 400, message: "The hashed password is not valid" });
         else {
 
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.get("/picture/:username", async (req, res, next) => {
+    try {
+        if (req.params.username.length > 15)
+            res.status(400).json({ code: 400, message: "The username provided is not valid" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false;
+                const VarChar = require("tedious/lib/data-types/varchar");
+
+                const request = new Request("SP_GetPicture", (error) => {
+                    if (error)
+                        next(error);
+                });
+                request.addParameter("Username", VarChar, req.body.username);
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    console.log(columns[0].value);
+                });
+                request.on("done", () => {
+                    connection.close();
+                    if (!hasRows)
+                        res.status(400).json({ code: 400, message: "The username provided does not exist" })
+                });
+
+                connection.callProcedure(request);
+            }
         }
     }
     catch (error) {
