@@ -32,9 +32,9 @@ router.post("/login", async (req, res, next) => {
                 request.addParameter("Password", VarChar, req.body.password);
 
                 request.on("row", (columns) => res.status(200).json({ code: 200, value: columns }));
+                request.on("done", () => connection.close());
     
                 connection.callProcedure(request);
-                connection.close();
             }
         }
     }
