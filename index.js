@@ -13,8 +13,8 @@ app.get("/", async (_req, res) => res.redirect("--------------------------------
 app.use("/user", require("./api/user"));
 app.use("/file", require("./api/file"));
 
-app.use((_req, res, _next) => res.status(404).json({ code: 404, message: "Page not found" }));
+app.use((_req, res, _next) => res.status(404).json({ code: 44, message: "Page not found" }));
 app.use((err, _req, res, _next) => {
     console.error(err.stack);
-    res.status(500).json({ code: 500, message: "Server error" });
+    res.status(500).json({ code: 50, message: "Server error" });
 });
