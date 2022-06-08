@@ -1,61 +1,42 @@
 const router = require("express").Router();
-const { BlockBlobClient, BlobServiceClient } = require("@azure/storage-blob");
+const keygen = require("keygenerator");
+const { BlobServiceClient } = require("@azure/storage-blob");
 const getStream = require("into-stream");
-const { config } = require("../config");
+const package = require("../package.json");
+var progresses = {};
 
 router.post("/upload", async (req, res, next) => {
     try {
-        let blobName = "123456";
-
-
-
-        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
-        const containerClient = blobServiceClient.getContainerClient(blobName);
-        await containerClient.create();
-
-
-
-
-
-        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-        await blockBlobClient.uploadStream(getStream(req.files.file.data), req.files.file.data.length);
-
-
-
-        const downloadBlockBlobResponse = await blockBlobClient.download(0);
-
-
-        // https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-nodejs?tabs=environment-variable-windows
-
-
-        res.end();
-
-        /*function queryDatabase() {
-            console.log("Reading rows from the Table...");
-
-            // Read all rows from table
-            const request = new Request(
-                `SELECT TOP 20 pc.Name as CategoryName,
-                   p.name as ProductName
-     FROM [SalesLT].[ProductCategory] pc
-     JOIN [SalesLT].[Product] p ON pc.productcategoryid = p.productcategoryid`,
-                (err, rowCount) => {
-                    if (err) {
-                        console.error(err.message);
-                    } else {
-                        console.log(`${rowCount} row(s) returned`);
-                    }
-                }
-            );
-
-            request.on("row", columns => {
-                columns.forEach(column => {
-                    console.log("%s\t%s", column.metadata.colName, column.value);
-                });
+        if (req.files == undefined)
+            res.status(400).json({ code: 1, message: "No files were sent on the request" });
+        else {
+            let fileCode = keygen._({
+                chars: false,
+                numbers: true,
+                sticks: false,
+                specials: false,
+                length: 6
             });
 
-            connection.execSql(request);
-        }*/
+            const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+            const containerClient = blobServiceClient.getContainerClient(fileCode);
+            await containerClient.create();
+
+            const data = getStream(req.files.file.data);
+            const blockBlobClient = containerClient.getBlockBlobClient(req.files.file.name);
+            blockBlobClient.uploadStream(data, 4 * 1024 * 1024, 20, {
+                blobHTTPHeaders: {
+                    blobContentType: req.files.file.mimetype
+                },
+                onProgress: (progress) => {
+                    progresses[fileCode] = {
+                        percentage: Math.round(((progress.loadedBytes * 100) / req.files.file.size) * 100) / 100
+                    };
+                }
+            });
+
+            res.status(200).json({ code: 0, progressUrl: package.url + "file/" + fileCode + "/progress" });
+        }
     }
     catch (error) {
         next(error);
@@ -64,7 +45,27 @@ router.post("/upload", async (req, res, next) => {
 
 router.get("/:code", async (req, res, next) => {
     try {
-        
+        res.status(200).json({ code: 0, message: "" });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.get("/:code/progress", async (req, res, next) => {
+    try {
+        let progress = progresses[req.params.code];
+        if (progress == undefined)
+            res.status(400).json({ code: 1, message: "The code provided is not from a transfer in progress" });
+        else {
+            if (progress.percentage == 100)
+                delete progresses[req.params.code];
+            
+            res.status(200).json({
+                code: 0,
+                ...progress
+            });
+        }
     }
     catch (error) {
         next(error);

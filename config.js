@@ -9,6 +9,7 @@ exports.config = {
     server: process.env.server,
     options: {
         database: process.env.database,
-        encrypt: true
+        encrypt: true,
+        trustServerCertificate: true
     }
 };

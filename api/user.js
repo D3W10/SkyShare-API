@@ -1,9 +1,12 @@
 const router = require("express").Router();
 const { Connection, Request } = require("tedious");
+const { TYPES } = require("tedious");
 const keygen = require("keygenerator");
 const { config } = require("../config");
-
-//https://www.npmjs.com/package/keygenerator
+const { BlobServiceClient, RestError } = require("@azure/storage-blob");
+const getStream = require("into-stream");
+const package = require("../package.json");
+const mcache = require("memory-cache");
 
 router.post("/login", async (req, res, next) => {
     try {
@@ -26,14 +29,14 @@ router.post("/login", async (req, res, next) => {
     
             function queryDatabase() {
                 let hasRows = false;
-                const VarChar = require("tedious/lib/data-types/varchar");
 
                 const request = new Request("SP_Login", (error) => {
                     if (error)
                         next(error);
                 });
-                request.addParameter("Username", VarChar, req.body.username);
-                request.addParameter("Password", VarChar, req.body.password);
+
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("Password", TYPES.VarChar, req.body.password);
 
                 request.on("row", (columns) => {
                     hasRows = true;
@@ -42,7 +45,11 @@ router.post("/login", async (req, res, next) => {
                 request.on("requestCompleted", () => {
                     connection.close();
                     if (!hasRows)
-                        res.status(400).json({ code: 4, message: "Login details not valid" })
+                        res.status(400).json({ code: 4, message: "Login details not valid" });
+                });
+                request.on("error", (error) => {
+                    console.error(error);
+                    res.status(400).json({ code: 5, message: "Unknown error" });
                 });
     
                 connection.callProcedure(request);
@@ -64,8 +71,63 @@ router.post("/signup", async (req, res, next) => {
             res.status(400).json({ code: 3, message: "The email provided is not valid" });
         else if (req.body.password.length != 128)
             res.status(400).json({ code: 4, message: "The hashed password is not valid" });
+        else if (!(await (await fetch(package.url + "user/check", { method: "POST", body: { username: req.body.username } })).json()).value)
+            res.status(400).json({ code: 5, message: "A user with this username already exists" });
         else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+    
+            connection.connect();
+    
+            function queryDatabase() {
+                const request = new Request("SP_SignUp", (error) => {
+                    if (error)
+                        next(error);
+                });
 
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("Email", TYPES.VarChar, req.body.email);
+                request.addParameter("Password", TYPES.VarChar, req.body.password);
+                request.addParameter("RecoveryKey", TYPES.VarChar, keygen._({
+                    chars: true,
+                    numbers: true,
+                    sticks: false,
+                    specials: false,
+                    forceLowercase: true,
+                    length: 10
+                }));
+                request.addParameter("CreationDate", TYPES.DateTime, new Date());
+
+                request.on("requestCompleted", async () => {
+                    connection.close();
+
+                    if (req.files != undefined && req.files.picture != undefined) {
+                        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+                        const containerClient = blobServiceClient.getContainerClient("pictures");
+
+                        const data = getStream(req.files.picture.data);
+                        const blockBlobClient = containerClient.getBlockBlobClient(req.body.username);
+                        await blockBlobClient.uploadStream(data, 4 * 1024 * 1024, 20, {
+                            blobHTTPHeaders: {
+                                blobContentType: req.files.picture.mimetype
+                            }
+                        });
+                    }
+
+                    res.status(200).json({ code: 0, message: "Successfully Created" });
+                });
+                request.on("error", (error) => {
+                    console.error(error);
+                    res.status(400).json({ code: 6, message: "Unknown error" });
+                });
+    
+                connection.callProcedure(request);
+            }
         }
     }
     catch (error) {
@@ -73,10 +135,12 @@ router.post("/signup", async (req, res, next) => {
     }
 });
 
-router.get("/picture/:username", async (req, res, next) => {
+router.post("/check", async (req, res, next) => {
     try {
-        if (req.params.username.length > 15)
-            res.status(400).json({ code: 1, message: "The username provided is not valid" });
+        if (req.body.username == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.username.length > 15)
+            res.status(400).json({ code: 2, message: "The username provided is not valid" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -90,27 +154,26 @@ router.get("/picture/:username", async (req, res, next) => {
 
             function queryDatabase() {
                 let hasRows = false;
-                const VarChar = require("tedious/lib/data-types/varchar");
 
-                const request = new Request("SP_GetPicture", (error) => {
+                const request = new Request("SP_UsernameCheck", (error) => {
                     if (error)
                         next(error);
                 });
-                request.addParameter("Username", VarChar, req.params.username);
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    let originalBase64ImageStr = new Buffer(columns[0].value).toString("utf8");
-                    let decodedImage = new Buffer(originalBase64ImageStr , "base64");
-
-                    res.status(200).end(decodedImage); 
-
-                    //res.status(200).json({ code: 0, value: { columns[0].value } })
+                    res.status(200).json({ code: 0, value: columns[0].value == 0 });
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
                     if (!hasRows)
-                        res.status(400).json({ code: 2, message: "The username provided does not exist" })
+                        res.status(400).json({ code: 3, message: "Unknown error" });
+                });
+                request.on("error", (error) => {
+                    console.error(error);
+                    res.status(400).json({ code: 3, message: "Unknown error" });
                 });
 
                 connection.callProcedure(request);
@@ -119,6 +182,41 @@ router.get("/picture/:username", async (req, res, next) => {
     }
     catch (error) {
         next(error);
+    }
+});
+
+router.get("/picture/:username", async (req, res, next) => {
+    try {
+        if (req.params.username.length > 15)
+            res.status(400).json({ code: 1, message: "The username provided is not valid" });
+        else if (mcache.get(req.originalUrl)) {
+            let cached = mcache.get(req.originalUrl);
+
+            res.writeHead(200, {
+                "Content-Type": cached.type,
+                "Content-Length": cached.image.length
+            });
+            res.end(cached.image);
+        }
+        else {
+            const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+            const containerClient = blobServiceClient.getContainerClient("pictures");
+            const blockBlobClient = containerClient.getBlockBlobClient(req.params.username);
+            const imageBuffer = await blockBlobClient.downloadToBuffer();
+
+            mcache.put(req.originalUrl, { type: (await blockBlobClient.getProperties()).contentType, image: imageBuffer }, 20000);
+            res.writeHead(200, {
+                "Content-Type": (await blockBlobClient.getProperties()).contentType,
+                "Content-Length": imageBuffer.length
+            });
+            res.end(imageBuffer); 
+        }
+    }
+    catch (error) {
+        if (error instanceof RestError)
+            res.status(400).json({ code: 2, message: "This user doesn't have a profile picture" });
+        else
+            next(error);
     }
 });
 

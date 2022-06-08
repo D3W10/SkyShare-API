@@ -8,7 +8,7 @@ app.listen(PORT, () => console.log(`Preparado em ${PORT}`));
 app.use(express.json({ extended: false }));
 app.use(fileUpload());
 
-app.get("/", async (_req, res) => res.redirect("------------------------------------------------------"));
+app.get("/", async (_req, res) => res.redirect("https://skyshare.pt/"));
 
 app.use("/user", require("./api/user"));
 app.use("/file", require("./api/file"));
