@@ -120,7 +120,7 @@ router.post("/signup", async (req, res, next) => {
                         });
                     }
 
-                    res.status(200).json({ code: 0, message: "Successfully Created" });
+                    res.status(200).json({ code: 0, value: { username: req.body.username, email: req.body.email, picture: "https://skyshare-api.herokuapp.com/user/picture/" + req.body.username }});
                 });
                 request.on("error", (error) => {
                     console.error(error);
