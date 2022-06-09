@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const { Connection, Request } = require("tedious");
 const { TYPES } = require("tedious");
+const axios = require("axios").default;
 const keygen = require("keygenerator");
 const { config } = require("../config");
 const { BlobServiceClient, RestError } = require("@azure/storage-blob");
@@ -71,7 +72,7 @@ router.post("/signup", async (req, res, next) => {
             res.status(400).json({ code: 3, message: "The email provided is not valid" });
         else if (req.body.password.length != 128)
             res.status(400).json({ code: 4, message: "The hashed password is not valid" });
-        else if (!(await (await fetch(package.url + "user/check", { method: "POST", body: { username: req.body.username } })).json()).value)
+        else if (!(await (await axios.post(package.url + "user/check", { username: req.body.username })).data).value)
             res.status(400).json({ code: 5, message: "A user with this username already exists" });
         else {
             const connection = new Connection(config);
