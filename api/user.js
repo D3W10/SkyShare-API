@@ -62,8 +62,11 @@ router.post("/login", async (req, res, next) => {
     }
 });
 
-router.post("/signup", async (req, res, next) => {
+const multer = require('multer');
+router.post("/signup", multer().none(), async (req, res, next) => {
     try {
+        console.log(req.body);
+        console.log(req.headers);
         if (req.body.username == null || req.body.email == null || req.body.password == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
         else if (req.body.username.length > 15)
