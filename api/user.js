@@ -270,7 +270,7 @@ router.post("/recovery/password", (req, res, next) => {
             function queryDatabase() {
                 let hasRows = false;
 
-                const request = new Request("SP_RecoveryCheck", (error) => {
+                const request = new Request("SP_PasswordRecovery", (error) => {
                     if (error)
                         next(error);
                 });
