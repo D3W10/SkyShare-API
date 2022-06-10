@@ -62,11 +62,8 @@ router.post("/login", async (req, res, next) => {
     }
 });
 
-const multer = require('multer');
-router.post("/signup", multer().none(), async (req, res, next) => {
+router.post("/signup", async (req, res, next) => {
     try {
-        console.log(req.body);
-        console.log(req.headers);
         if (req.body.username == null || req.body.email == null || req.body.password == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
         else if (req.body.username.length > 15)
@@ -89,6 +86,8 @@ router.post("/signup", multer().none(), async (req, res, next) => {
             connection.connect();
     
             function queryDatabase() {
+                let hasRows = false;
+
                 const request = new Request("SP_SignUp", (error) => {
                     if (error)
                         next(error);
@@ -107,6 +106,10 @@ router.post("/signup", multer().none(), async (req, res, next) => {
                 }));
                 request.addParameter("CreationDate", TYPES.DateTime, new Date());
 
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: columns[2].value }});
+                });
                 request.on("requestCompleted", async () => {
                     connection.close();
 
@@ -123,7 +126,8 @@ router.post("/signup", multer().none(), async (req, res, next) => {
                         });
                     }
 
-                    res.status(200).json({ code: 0, value: { username: req.body.username, email: req.body.email, picture: "https://skyshare-api.herokuapp.com/user/picture/" + req.body.username }});
+                    if (!hasRows)
+                        res.status(400).json({ code: 6, message: "Unknown error" });
                 });
                 request.on("error", (error) => {
                     console.error(error);
@@ -178,6 +182,123 @@ router.post("/check", async (req, res, next) => {
                 request.on("error", (error) => {
                     console.error(error);
                     res.status(400).json({ code: 3, message: "Unknown error" });
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/recovery/check", () => {
+    try {
+        if (req.body.username == null || req.body.recoveryKey == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.username.length > 15)
+            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.recoveryKey.length != 128)
+            res.status(400).json({ code: 3, message: "The hashed recovery key is not valid" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false;
+
+                const request = new Request("SP_RecoveryCheck", (error) => {
+                    if (error)
+                        next(error);
+                });
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    res.status(200).json({ code: 0, value: columns[0].value == 0 });
+                });
+                request.on("requestCompleted", () => {
+                    connection.close();
+                    if (!hasRows)
+                        res.status(400).json({ code: 4, message: "Unknown error" });
+                });
+                request.on("error", (error) => {
+                    console.error(error);
+                    res.status(400).json({ code: 4, message: "Unknown error" });
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/recovery/change", () => {
+    try {
+        if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.username.length > 15)
+            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.recoveryKey.length != 128)
+            res.status(400).json({ code: 3, message: "The hashed recovery key is not valid" });
+        else if (req.body.newPassword.length != 128)
+            res.status(400).json({ code: 4, message: "The hashed new password is not valid" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false;
+
+                const request = new Request("SP_RecoveryCheck", (error) => {
+                    if (error)
+                        next(error);
+                });
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
+                request.addParameter("NewPassword", TYPES.VarChar, req.body.newPassword);
+                request.addParameter("NewRecoveryKey", TYPES.VarChar, keygen._({
+                    chars: true,
+                    numbers: true,
+                    sticks: false,
+                    specials: false,
+                    forceLowercase: true,
+                    length: 10
+                }));
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: columns[2].value }});
+                });
+                request.on("requestCompleted", () => {
+                    connection.close();
+                    if (!hasRows)
+                        res.status(400).json({ code: 5, message: "Unknown error" });
+                });
+                request.on("error", (error) => {
+                    console.error(error);
+                    res.status(400).json({ code: 5, message: "Unknown error" });
                 });
 
                 connection.callProcedure(request);
