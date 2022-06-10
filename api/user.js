@@ -225,7 +225,7 @@ router.post("/recovery/check", (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: columns[0].value == 0 });
+                    res.status(200).json({ code: 0, value: columns[0].value != 0 });
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
