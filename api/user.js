@@ -246,7 +246,7 @@ router.post("/recovery/check", () => {
     }
 });
 
-router.post("/recovery/change", () => {
+router.post("/recovery/password", () => {
     try {
         if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
