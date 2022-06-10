@@ -92,24 +92,24 @@ router.post("/signup", async (req, res, next) => {
                 const request = new Request("SP_SignUp", (error) => {
                     if (error)
                         next(error);
-                });
-
-                request.addParameter("Username", TYPES.VarChar, req.body.username);
-                request.addParameter("Email", TYPES.VarChar, req.body.email);
-                request.addParameter("Password", TYPES.VarChar, req.body.password);
-                request.addParameter("RecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(keygen._({
+                }), recoveryKey = keygen._({
                     chars: true,
                     numbers: true,
                     sticks: false,
                     specials: false,
                     forceLowercase: true,
                     length: 10
-                })).digest("hex"));
+                });
+
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("Email", TYPES.VarChar, req.body.email);
+                request.addParameter("Password", TYPES.VarChar, req.body.password);
+                request.addParameter("RecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(recoveryKey).digest("hex"));
                 request.addParameter("CreationDate", TYPES.DateTime, new Date());
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: columns[2].value }});
+                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: recoveryKey }});
                 });
                 request.on("requestCompleted", async () => {
                     connection.close();
@@ -274,23 +274,23 @@ router.post("/recovery/password", (req, res, next) => {
                 const request = new Request("SP_PasswordRecovery", (error) => {
                     if (error)
                         next(error);
-                });
-                
-                request.addParameter("Username", TYPES.VarChar, req.body.username);
-                request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
-                request.addParameter("NewPassword", TYPES.VarChar, req.body.newPassword);
-                request.addParameter("NewRecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(keygen._({
+                }), recoveryKey = keygen._({
                     chars: true,
                     numbers: true,
                     sticks: false,
                     specials: false,
                     forceLowercase: true,
                     length: 10
-                })).digest("hex"));
+                });
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
+                request.addParameter("NewPassword", TYPES.VarChar, req.body.newPassword);
+                request.addParameter("NewRecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(recoveryKey).digest("hex"));
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: columns[2].value }});
+                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: recoveryKey }});
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
