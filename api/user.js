@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { Connection, Request } = require("tedious");
 const { TYPES } = require("tedious");
 const axios = require("axios").default;
+const crypto = require("crypto");
 const keygen = require("keygenerator");
 const { config } = require("../config");
 const { BlobServiceClient, RestError } = require("@azure/storage-blob");
@@ -96,14 +97,14 @@ router.post("/signup", async (req, res, next) => {
                 request.addParameter("Username", TYPES.VarChar, req.body.username);
                 request.addParameter("Email", TYPES.VarChar, req.body.email);
                 request.addParameter("Password", TYPES.VarChar, req.body.password);
-                request.addParameter("RecoveryKey", TYPES.VarChar, keygen._({
+                request.addParameter("RecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(keygen._({
                     chars: true,
                     numbers: true,
                     sticks: false,
                     specials: false,
                     forceLowercase: true,
                     length: 10
-                }));
+                })).digest("hex"));
                 request.addParameter("CreationDate", TYPES.DateTime, new Date());
 
                 request.on("row", (columns) => {
@@ -278,14 +279,14 @@ router.post("/recovery/password", (req, res, next) => {
                 request.addParameter("Username", TYPES.VarChar, req.body.username);
                 request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
                 request.addParameter("NewPassword", TYPES.VarChar, req.body.newPassword);
-                request.addParameter("NewRecoveryKey", TYPES.VarChar, keygen._({
+                request.addParameter("NewRecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(keygen._({
                     chars: true,
                     numbers: true,
                     sticks: false,
                     specials: false,
                     forceLowercase: true,
                     length: 10
-                }));
+                })).digest("hex"));
 
                 request.on("row", (columns) => {
                     hasRows = true;
