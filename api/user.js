@@ -30,7 +30,7 @@ router.post("/login", (req, res, next) => {
             connection.connect();
     
             function queryDatabase() {
-                let hasRows = false;
+                let hasRows = false, dataRow = null;
 
                 const request = new Request("SP_Login", (error) => {
                     if (error)
@@ -42,11 +42,13 @@ router.post("/login", (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value }});
+                    dataRow = columns;
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
-                    if (!hasRows)
+                    if (hasRows)
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value } });
+                    else
                         res.status(400).json({ code: 4, message: "Login details not valid" });
                 });
                 request.on("error", (error) => {
@@ -87,7 +89,7 @@ router.post("/signup", async (req, res, next) => {
             connection.connect();
     
             function queryDatabase() {
-                let hasRows = false;
+                let hasRows = false, dataRow = null;
 
                 const request = new Request("SP_SignUp", (error) => {
                     if (error)
@@ -109,7 +111,7 @@ router.post("/signup", async (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: recoveryKey }});
+                    dataRow = columns;
                 });
                 request.on("requestCompleted", async () => {
                     connection.close();
@@ -127,7 +129,9 @@ router.post("/signup", async (req, res, next) => {
                         });
                     }
 
-                    if (!hasRows)
+                    if (hasRows)
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value, recoveryKey: recoveryKey } });
+                    else
                         res.status(400).json({ code: 6, message: "Unknown error" });
                 });
                 request.on("error", (error) => {
@@ -162,7 +166,7 @@ router.post("/check", (req, res, next) => {
             connection.connect();
 
             function queryDatabase() {
-                let hasRows = false;
+                let hasRows = false, dataRow = null;
 
                 const request = new Request("SP_UsernameCheck", (error) => {
                     if (error)
@@ -173,11 +177,13 @@ router.post("/check", (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: columns[0].value == 0 });
+                    dataRow = columns;
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
-                    if (!hasRows)
+                    if (hasRows)
+                        res.status(200).json({ code: 0, value: dataRow[0].value == 0 });
+                    else
                         res.status(400).json({ code: 3, message: "Unknown error" });
                 });
                 request.on("error", (error) => {
@@ -214,7 +220,7 @@ router.post("/recovery/check", (req, res, next) => {
             connection.connect();
 
             function queryDatabase() {
-                let hasRows = false;
+                let hasRows = false, dataRow = null;
 
                 const request = new Request("SP_RecoveryCheck", (error) => {
                     if (error)
@@ -226,11 +232,13 @@ router.post("/recovery/check", (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: columns[0].value != 0 });
+                    dataRow = columns;
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
-                    if (!hasRows)
+                    if (hasRows)
+                        res.status(200).json({ code: 0, value: dataRow[0].value != 0 });
+                    else
                         res.status(400).json({ code: 4, message: "Unknown error" });
                 });
                 request.on("error", (error) => {
@@ -269,7 +277,7 @@ router.post("/recovery/password", (req, res, next) => {
             connection.connect();
 
             function queryDatabase() {
-                let hasRows = false;
+                let hasRows = false, dataRow = null;
 
                 const request = new Request("SP_PasswordRecovery", (error) => {
                     if (error)
@@ -290,11 +298,13 @@ router.post("/recovery/password", (req, res, next) => {
 
                 request.on("row", (columns) => {
                     hasRows = true;
-                    res.status(200).json({ code: 0, value: { username: columns[0].value, email: columns[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + columns[0].value, recoveryKey: recoveryKey }});
+                    dataRow = columns;
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
-                    if (!hasRows)
+                    if (hasRows)
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value, recoveryKey: recoveryKey }});
+                    else
                         res.status(400).json({ code: 5, message: "Unknown error" });
                 });
                 request.on("error", (error) => {
