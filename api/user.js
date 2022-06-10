@@ -9,7 +9,7 @@ const getStream = require("into-stream");
 const package = require("../package.json");
 const mcache = require("memory-cache");
 
-router.post("/login", async (req, res, next) => {
+router.post("/login", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.password == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
@@ -143,7 +143,7 @@ router.post("/signup", async (req, res, next) => {
     }
 });
 
-router.post("/check", async (req, res, next) => {
+router.post("/check", (req, res, next) => {
     try {
         if (req.body.username == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
@@ -193,7 +193,7 @@ router.post("/check", async (req, res, next) => {
     }
 });
 
-router.post("/recovery/check", () => {
+router.post("/recovery/check", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.recoveryKey == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
@@ -246,7 +246,7 @@ router.post("/recovery/check", () => {
     }
 });
 
-router.post("/recovery/password", () => {
+router.post("/recovery/password", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
