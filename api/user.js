@@ -1,10 +1,10 @@
 const router = require("express").Router();
+const { config } = require("../config");
 const { Connection, Request } = require("tedious");
 const { TYPES } = require("tedious");
 const axios = require("axios").default;
 const crypto = require("crypto");
 const keygen = require("keygenerator");
-const { config } = require("../config");
 const { BlobServiceClient, RestError } = require("@azure/storage-blob");
 const getStream = require("into-stream");
 const package = require("../package.json");
@@ -14,10 +14,10 @@ router.post("/login", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.password == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
-        else if (req.body.username.length > 15)
-            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.password.length != 128)
-            res.status(400).json({ code: 3, message: "The hashed password is not valid" });
+            res.status(400).json({ code: 5, message: "The password provided is not valid" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -46,14 +46,16 @@ router.post("/login", (req, res, next) => {
                 });
                 request.on("requestCompleted", () => {
                     connection.close();
+                    
                     if (hasRows)
                         res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value } });
                     else
-                        res.status(400).json({ code: 4, message: "Login details not valid" });
+                        res.status(400).json({ code: 7, message: "Wrong username or password" });
                 });
                 request.on("error", (error) => {
+                    connection.close();
                     console.error(error);
-                    res.status(400).json({ code: 5, message: "Unknown error" });
+                    next(error);
                 });
     
                 connection.callProcedure(request);
@@ -67,16 +69,24 @@ router.post("/login", (req, res, next) => {
 
 router.post("/signup", async (req, res, next) => {
     try {
+        let apiResult = { code: 0, value: false };
+        if (req.body.username != null)
+            apiResult = await (await axios.post(package.url + "user/check", { username: req.body.username }, { validateStatus: () => true })).data;
+
         if (req.body.username == null || req.body.email == null || req.body.password == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
-        else if (req.body.username.length > 15)
-            res.status(400).json({ code: 2, message: "The username provided is not valid" });
-        else if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(req.body.email) || req.body.email.length > 250)
-            res.status(400).json({ code: 3, message: "The email provided is not valid" });
-        else if (req.body.password.length != 128)
-            res.status(400).json({ code: 4, message: "The hashed password is not valid" });
-        else if (!(await (await axios.post(package.url + "user/check", { username: req.body.username })).data).value)
-            res.status(400).json({ code: 5, message: "A user with this username already exists" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
+        else if (req.body.email.length > 250 || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(req.body.email))
+            res.status(400).json({ code: 4, message: "The email provided is not valid" });
+        else if (req.body.password.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.password))
+            res.status(400).json({ code: 5, message: "The password provided is not valid" });
+        else if (req.files != undefined && req.files.picture != undefined && req.files.picture.size > 3145728)
+            res.status(400).json({ code: 20, message: "The image size cannot be over 3 MB" });
+        else if (req.files != undefined && req.files.picture != undefined && !["image/png", "image/jpeg"].includes(req.files.picture.mimetype))
+            res.status(400).json({ code: 21, message: "The image was not in the correct type" });
+        else if (apiResult.code == 0 && !apiResult.value)
+            res.status(400).json({ code: 7, message: "A user with this username already exists" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -105,7 +115,7 @@ router.post("/signup", async (req, res, next) => {
 
                 request.addParameter("Username", TYPES.VarChar, req.body.username);
                 request.addParameter("Email", TYPES.VarChar, req.body.email);
-                request.addParameter("Password", TYPES.VarChar, req.body.password);
+                request.addParameter("Password", TYPES.VarChar, crypto.createHash("sha512").update(req.body.password).digest("hex"));
                 request.addParameter("RecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(recoveryKey).digest("hex"));
                 request.addParameter("CreationDate", TYPES.DateTime, new Date());
 
@@ -132,11 +142,12 @@ router.post("/signup", async (req, res, next) => {
                     if (hasRows)
                         res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value, recoveryKey: recoveryKey } });
                     else
-                        res.status(400).json({ code: 6, message: "Unknown error" });
+                        res.status(400).json({ code: 9, message: "There was an error while trying to create the account" });
                 });
                 request.on("error", (error) => {
+                    connection.close();
                     console.error(error);
-                    res.status(400).json({ code: 6, message: "Unknown error" });
+                    next(error);
                 });
     
                 connection.callProcedure(request);
@@ -152,8 +163,8 @@ router.post("/check", (req, res, next) => {
     try {
         if (req.body.username == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
-        else if (req.body.username.length > 15)
-            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -184,11 +195,214 @@ router.post("/check", (req, res, next) => {
                     if (hasRows)
                         res.status(200).json({ code: 0, value: dataRow[0].value == 0 });
                     else
-                        res.status(400).json({ code: 3, message: "Unknown error" });
+                        res.status(400).json({ code: 10, message: "There was an error while checking the username" });
                 });
                 request.on("error", (error) => {
+                    connection.close();
                     console.error(error);
-                    res.status(400).json({ code: 3, message: "Unknown error" });
+                    next(error);
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/edit/info", async (req, res, next) => {
+    try {
+        let apiResult = { code: 0, value: false };
+        if (req.body.newUsername != null)
+            apiResult = await (await axios.post(package.url + "user/check", { username: req.body.newUsername }, { validateStatus: () => true })).data;
+
+        if (req.body.username == null || req.body.password == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.newUsername == null && req.body.email == null && req.files == undefined)
+            res.status(400).json({ code: 2, message: "None of the parameters to modify were provided" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
+        else if (req.body.password.length != 128)
+            res.status(400).json({ code: 5, message: "The password provided is not valid" });
+        else if (req.body.newUsername != null && (req.body.newUsername.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.newUsername)))
+            res.status(400).json({ code: 18, message: "The new username is not valid" });
+        else if (req.body.email != null && (req.body.email.length > 250 || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(req.body.email)))
+            res.status(400).json({ code: 19, message: "The new email is not valid" });
+        else if (req.body.newUsername == null && req.body.email == null && req.files.picture == undefined)
+            res.status(400).json({ code: 12, message: "No picture was provided" });
+        else if (req.files != undefined && req.files.picture != undefined && req.files.picture.size > 3145728)
+            res.status(400).json({ code: 20, message: "The image size cannot be over 3 MB" });
+        else if (req.files != undefined && req.files.picture != undefined && !["image/png", "image/jpeg"].includes(req.files.picture.mimetype))
+            res.status(400).json({ code: 21, message: "The image was not in the correct type" });
+        else if (req.body.newUsername != null && apiResult.code == 0 && !apiResult.value)
+            res.status(400).json({ code: 8, message: "A user with this username already exists" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let request, hasRows = false, dataRow = null;
+
+                if (req.body.newUsername != null || req.body.email != null) {
+                    request = new Request("SP_EditUser", (error) => {
+                        if (error)
+                            next(error);
+                    });
+
+                    request.addParameter("Username", TYPES.VarChar, req.body.username);
+                    request.addParameter("Password", TYPES.VarChar, req.body.password);
+                    request.addParameter("NewUsername", TYPES.VarChar, req.body.newUsername);
+                    request.addParameter("Email", TYPES.VarChar, req.body.email);
+                }
+                else {
+                    request = new Request("SP_GetBasicUserData", (error) => {
+                        if (error)
+                            next(error);
+                    });
+
+                    request.addParameter("Username", TYPES.VarChar, req.body.username);
+                    request.addParameter("Password", TYPES.VarChar, req.body.password);
+                }
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    dataRow = columns;
+                });
+                request.on("requestCompleted", async () => {
+                    connection.close();
+                    if (hasRows) {
+                        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+                        const containerClient = blobServiceClient.getContainerClient("pictures");
+
+                        if (req.body.newUsername != null) {
+                            let oldBlockBlobClient = containerClient.getBlockBlobClient(req.body.username);
+                            let newBlockBlobClient = containerClient.getBlockBlobClient(req.body.newUsername);
+
+                            if (await oldBlockBlobClient.exists()) {
+                                await (await newBlockBlobClient.beginCopyFromURL(oldBlockBlobClient.url)).pollUntilDone();
+                                await oldBlockBlobClient.delete({ deleteSnapshots: "include" });
+                            }
+                        }
+                        
+                        if (req.files != undefined && req.files.picture != undefined) {
+                            const data = getStream(req.files.picture.data);
+                            const blockBlobClient = containerClient.getBlockBlobClient(dataRow[0].value);
+
+                            if (await blockBlobClient.exists())
+                                await blockBlobClient.delete({ deleteSnapshots: "include" });
+                            await blockBlobClient.uploadStream(data, 4 * 1024 * 1024, 20, {
+                                blobHTTPHeaders: {
+                                    blobContentType: req.files.picture.mimetype
+                                }
+                            });
+                        }
+            
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value } });
+                    }
+                    else {
+                        res.status(400).json({ code: 11, message: "There was an error while editing your profile" });
+                        return;
+                    }
+                });
+                request.on("error", (error) => {
+                    connection.close();
+                    console.error(error);
+                    next(error);
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/edit/password", (req, res, next) => {
+    try {
+        if (req.body.username == null || req.body.password == null || req.body.newPassword == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
+        else if (req.body.password.length != 128)
+            res.status(400).json({ code: 5, message: "The password provided is not valid" });
+        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.newPassword))
+            res.status(400).json({ code: 6, message: "The new password is not valid" });
+        else if (req.body.password == crypto.createHash("sha512").update(req.body.newPassword).digest("hex"))
+            res.status(400).json({ code: 17, message: "Both passwords are the same" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false;
+
+                const request = new Request("SP_Login", (error) => {
+                    if (error)
+                        next(error);
+                });
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("Password", TYPES.VarChar, req.body.password);
+
+                request.on("row", () => hasRows = true);
+                request.on("requestCompleted", () => {
+                    if (hasRows) {
+                        let hasRows = false, dataRow = null;
+
+                        const request = new Request("SP_PasswordChange", (error) => {
+                            if (error)
+                                next(error);
+                        });
+                        
+                        request.addParameter("Username", TYPES.VarChar, req.body.username);
+                        request.addParameter("Password", TYPES.VarChar, crypto.createHash("sha512").update(req.body.newPassword).digest("hex"));
+
+                        request.on("row", (columns) => {
+                            hasRows = true;
+                            dataRow = columns;
+                        });
+                        request.on("requestCompleted", () => {
+                            connection.close();
+                            if (hasRows)
+                                res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value } });
+                            else
+                                res.status(400).json({ code: 13, message: "There was an error while changing your password" });
+                        });
+                        request.on("error", (error) => {
+                            connection.close();
+                            console.error(error);
+                            next(error);
+                        });
+
+                        connection.callProcedure(request);
+                    }
+                    else {
+                        connection.close();
+                        res.status(400).json({ code: 7, message: "Wrong username or password" });
+                    }
+                });
+                request.on("error", (error) => {
+                    connection.close();
+                    console.error(error);
+                    next(error);
                 });
 
                 connection.callProcedure(request);
@@ -204,10 +418,10 @@ router.post("/recovery/check", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.recoveryKey == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
-        else if (req.body.username.length > 15)
-            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.recoveryKey.length != 128)
-            res.status(400).json({ code: 3, message: "The hashed recovery key is not valid" });
+            res.status(400).json({ code: 14, message: "The recovery key provided is not valid" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -239,11 +453,12 @@ router.post("/recovery/check", (req, res, next) => {
                     if (hasRows)
                         res.status(200).json({ code: 0, value: dataRow[0].value != 0 });
                     else
-                        res.status(400).json({ code: 4, message: "Unknown error" });
+                        res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
                 });
                 request.on("error", (error) => {
+                    connection.close();
                     console.error(error);
-                    res.status(400).json({ code: 4, message: "Unknown error" });
+                    next(error);
                 });
 
                 connection.callProcedure(request);
@@ -259,12 +474,12 @@ router.post("/recovery/password", (req, res, next) => {
     try {
         if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
-        else if (req.body.username.length > 15)
-            res.status(400).json({ code: 2, message: "The username provided is not valid" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.recoveryKey.length != 128)
-            res.status(400).json({ code: 3, message: "The hashed recovery key is not valid" });
-        else if (req.body.newPassword.length != 128)
-            res.status(400).json({ code: 4, message: "The hashed new password is not valid" });
+            res.status(400).json({ code: 14, message: "The recovery key provided is not valid" });
+        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.newPassword))
+            res.status(400).json({ code: 6, message: "The new password is not valid" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -293,7 +508,7 @@ router.post("/recovery/password", (req, res, next) => {
                 
                 request.addParameter("Username", TYPES.VarChar, req.body.username);
                 request.addParameter("RecoveryKey", TYPES.VarChar, req.body.recoveryKey);
-                request.addParameter("NewPassword", TYPES.VarChar, req.body.newPassword);
+                request.addParameter("NewPassword", TYPES.VarChar, crypto.createHash("sha512").update(req.body.newPassword).digest("hex"));
                 request.addParameter("NewRecoveryKey", TYPES.VarChar, crypto.createHash("sha512").update(recoveryKey).digest("hex"));
 
                 request.on("row", (columns) => {
@@ -303,13 +518,98 @@ router.post("/recovery/password", (req, res, next) => {
                 request.on("requestCompleted", () => {
                     connection.close();
                     if (hasRows)
-                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value, recoveryKey: recoveryKey }});
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: "https://skyshare-api.herokuapp.com/user/picture/" + dataRow[0].value, recoveryKey: recoveryKey } });
                     else
-                        res.status(400).json({ code: 5, message: "Unknown error" });
+                        res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
                 });
                 request.on("error", (error) => {
+                    connection.close();
                     console.error(error);
-                    res.status(400).json({ code: 5, message: "Unknown error" });
+                    next(error);
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/history", (req, res, next) => {
+    try {
+        if (req.body.username == null || req.body.password == null)
+            res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
+        else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
+        else if (req.body.password.length != 128)
+            res.status(400).json({ code: 5, message: "The password provided is not valid" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false, dataRow = null;
+
+                const request = new Request("SP_GetUserID", (error) => {
+                    if (error)
+                        next(error);
+                });
+                
+                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                request.addParameter("Password", TYPES.VarChar, req.body.password);
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    dataRow = columns;
+                });
+                request.on("requestCompleted", () => {
+                    if (hasRows) {
+                        let weekAgo = new Date(), historyData = [];
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+
+                        const request = new Request("SP_GetEntriesFromUser", (error) => {
+                            if (error)
+                                next(error);
+                        });
+
+                        request.addParameter("IDUsername", TYPES.Int, dataRow[0].value);
+                        request.addParameter("WeekAgo", TYPES.Date, weekAgo);
+
+                        request.on("row", (columns) => {
+                            historyData.push({
+                                code: columns[0].value,
+                                type: columns[1].value,
+                                date: columns[2].value
+                            });
+                        });
+                        request.on("requestCompleted", () => {
+                            connection.close();
+                            res.status(200).json({ code: 0, value: historyData });
+                        });
+                        request.on("error", (error) => {
+                            connection.close();
+                            console.error(error);
+                            next(error);
+                        });
+
+                        connection.callProcedure(request);
+                    }
+                    else
+                        res.status(400).json({ code: 7, message: "Wrong username or password" });
+                });
+                request.on("error", (error) => {
+                    connection.close();
+                    console.error(error);
+                    next(error);
                 });
 
                 connection.callProcedure(request);
@@ -323,8 +623,8 @@ router.post("/recovery/password", (req, res, next) => {
 
 router.get("/picture/:username", async (req, res, next) => {
     try {
-        if (req.params.username.length > 15)
-            res.status(400).json({ code: 1, message: "The username provided is not valid" });
+        if (req.params.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.params.username))
+            res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (mcache.get(req.originalUrl)) {
             let cached = mcache.get(req.originalUrl);
 
@@ -350,7 +650,7 @@ router.get("/picture/:username", async (req, res, next) => {
     }
     catch (error) {
         if (error instanceof RestError)
-            res.status(400).json({ code: 2, message: "This user doesn't have a profile picture" });
+            res.status(400).json({ code: 16, message: "This user doesn't have a profile picture" });
         else
             next(error);
     }
