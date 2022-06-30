@@ -97,7 +97,7 @@ router.post("/upload", (req, res, next) => {
                         percentage: 0
                     }
 
-                    if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length != 128) {
+                    if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length != 128) {
                         sentBy = await new Promise((resolve) => {
                             let hasRows = false, dataRow = null;
 
@@ -216,8 +216,10 @@ router.post("/upload", (req, res, next) => {
                                 });
                             }
                         }
-                        else
-                            res.status(500).json({ code: 4, message: "Erro" });
+                        else {
+                            connection.close();
+                            next();
+                        }
                     });
                     request.on("error", (error) => {
                         connection.close();
@@ -265,31 +267,92 @@ router.get("/:code", async (req, res, next) => {
                     dataRow = columns;
                 });
                 request.on("requestCompleted", async () => {
-                    connection.close();
+                    if (hasRows) {
+                        if (dataRow[0].value == 0) {
+                            res.status(400).json({ code: 28, message: "A transfer does not exist with that code" });
+                            return;
+                        }
 
-                    if (hasRows && dataRow[0].value == 0) {
-                        res.status(400).json({ code: 28, message: "A transfer does not exist with that code" });
-                        return;
-                    }
+                        if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length != 128) {
+                            let transferID = await (await axios.post(package.url + "/" + req.params.code + "/info", { validateStatus: () => true })).data.id;
+                            let receivedBy = await new Promise((resolve) => {
+                                let hasRows = false, dataRow = null;
+    
+                                const request = new Request("SP_GetUserID", (error) => {
+                                    if (error)
+                                        next(error);
+                                });
+    
+                                request.addParameter("Username", TYPES.VarChar, req.body.username);
+                                request.addParameter("Password", TYPES.VarChar, req.body.password);
+    
+                                request.on("row", (columns) => {
+                                    hasRows = true;
+                                    dataRow = columns;
+                                });
+                                request.on("requestCompleted", () => {
+                                    if (hasRows)
+                                        resolve(dataRow[0].value);
+                                    else
+                                        resolve(null);
+                                });
+                                request.on("error", (error) => {
+                                    console.error(error);
+                                    resolve(null);
+                                });
+    
+                                connection.callProcedure(request);
+                            });
 
-                    const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
-                    const containerClient = blobServiceClient.getContainerClient(req.params.code);
-                    const blobList = (await containerClient.listBlobsFlat().byPage({ maxPageSize: 50 }).next()).value;
-            
-                    if (blobList.segment.blobItems.length == 1) {
-                        res.setHeader("Content-Disposition", `attachment; filename="${blobList.segment.blobItems[0].name}"`);
-                        res.status(200).end(await containerClient.getBlobClient(blobList.segment.blobItems[0].name).downloadToBuffer());
+                            let saveEntry = req.body.save == undefined ? true : req.body.save == "true";
+                            if (receivedBy != null && saveEntry) {
+                                await new Promise((resolve) => {
+                                    const request = new Request("SP_SaveEntry", (error) => {
+                                        if (error)
+                                            next(error);
+                                    });
+
+                                    request.addParameter("BelongsTo", TYPES.Int, receivedBy);
+                                    request.addParameter("Type", TYPES.Int, 1);
+                                    request.addParameter("Transfer", TYPES.Int, transferID);
+                                    request.addParameter("CreationDate", TYPES.Date, creationDate);
+
+                                    request.on("requestCompleted", () => resolve());
+                                    request.on("error", (error) => {
+                                        console.error(error);
+                                        resolve();
+                                    });
+
+                                    connection.callProcedure(request);
+                                });
+                            }
+                        }
+
+                        connection.close();
+
+                        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+                        const containerClient = blobServiceClient.getContainerClient(req.params.code);
+                        const blobList = (await containerClient.listBlobsFlat().byPage({ maxPageSize: 50 }).next()).value;
+
+                        if (blobList.segment.blobItems.length == 1) {
+                            res.setHeader("Content-Disposition", `attachment; filename="${blobList.segment.blobItems[0].name}"`);
+                            res.status(200).end(await containerClient.getBlobClient(blobList.segment.blobItems[0].name).downloadToBuffer());
+                        }
+                        else {
+                            var transferZip = new AdmZip();
+
+                            for (const blob of blobList.segment.blobItems) {
+                                let blobclient = containerClient.getBlobClient(blob.name);
+                                transferZip.addFile(blob.name, await blobclient.downloadToBuffer());
+                            }
+
+                            res.setHeader("Content-Disposition", `attachment; filename="${req.params.code}.zip"`);
+                            res.status(200).end(await transferZip.toBufferPromise());
+                        }
                     }
                     else {
-                        var transferZip = new AdmZip();
-            
-                        for (const blob of blobList.segment.blobItems) {
-                            let blobclient = containerClient.getBlobClient(blob.name);
-                            transferZip.addFile(blob.name, await blobclient.downloadToBuffer());
-                        }
-            
-                        res.setHeader("Content-Disposition", `attachment; filename="${req.params.code}.zip"`);
-                        res.status(200).end(await transferZip.toBufferPromise());
+                        connection.close();
+                        next();
                     }
                 });
                 request.on("error", (error) => {
@@ -369,7 +432,7 @@ router.get("/:code/info", async (req, res, next) => {
                             else
                                 fileName = req.params.code + ".zip";
 
-                            res.status(200).json({ code: 0, value: { message: dataRow[0].value, sentBy: dataRow[1].value, creationDate: dataRow[2].value, expireDate: dataRow[3].value, fileName: fileName } });
+                            res.status(200).json({ code: 0, value: { id: dataRow[0].value, message: dataRow[1].value, sentBy: dataRow[2].value, creationDate: dataRow[3].value, expireDate: dataRow[4].value, fileName: fileName } });
                         }
                         else
                             res.status(500).json({ code: 30, message: "The transfer data couldn't be fetched" });

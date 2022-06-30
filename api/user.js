@@ -640,7 +640,7 @@ router.get("/picture/:username", async (req, res, next) => {
             const blockBlobClient = containerClient.getBlockBlobClient(req.params.username);
             const imageBuffer = await blockBlobClient.downloadToBuffer();
 
-            mcache.put(req.originalUrl, { type: (await blockBlobClient.getProperties()).contentType, image: imageBuffer }, 20000);
+            mcache.put(req.originalUrl, { type: (await blockBlobClient.getProperties()).contentType, image: imageBuffer }, 3000);
             res.writeHead(200, {
                 "Content-Type": (await blockBlobClient.getProperties()).contentType,
                 "Content-Length": imageBuffer.length
