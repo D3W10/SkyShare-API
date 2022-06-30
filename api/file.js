@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { config } = require("../config");
 const { Connection, Request } = require("tedious");
 const { TYPES } = require("tedious");
+const axios = require("axios").default;
 const keygen = require("keygenerator");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const progress = require("progress-stream");
@@ -97,7 +98,7 @@ router.post("/upload", (req, res, next) => {
                         percentage: 0
                     }
 
-                    if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length != 128) {
+                    if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
                         sentBy = await new Promise((resolve) => {
                             let hasRows = false, dataRow = null;
 
@@ -273,8 +274,8 @@ router.post("/:code", async (req, res, next) => {
                             return;
                         }
 
-                        if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length != 128) {
-                            let transferID = await (await axios.post(package.url + "/" + req.params.code + "/info", { validateStatus: () => true })).data.id;
+                        if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
+                            let transferID = await (await axios.get(package.url + "file/" + req.params.code + "/info", { validateStatus: () => true })).data.value.id;
                             let receivedBy = await new Promise((resolve) => {
                                 let hasRows = false, dataRow = null;
     
@@ -315,7 +316,7 @@ router.post("/:code", async (req, res, next) => {
                                     request.addParameter("BelongsTo", TYPES.Int, receivedBy);
                                     request.addParameter("Type", TYPES.Int, 1);
                                     request.addParameter("Transfer", TYPES.Int, transferID);
-                                    request.addParameter("CreationDate", TYPES.Date, creationDate);
+                                    request.addParameter("CreationDate", TYPES.Date, new Date());
 
                                     request.on("requestCompleted", () => resolve());
                                     request.on("error", (error) => {
