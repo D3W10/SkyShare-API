@@ -237,7 +237,7 @@ router.post("/upload", (req, res, next) => {
     }
 });
 
-router.get("/:code", async (req, res, next) => {
+router.post("/:code", async (req, res, next) => {
     try {
         if (req.params.code.length != 6 && !/^\d{6}$/g.test(req.params.code))
             res.status(400).json({ code: 27, message: "Not a valid transfer code" });
