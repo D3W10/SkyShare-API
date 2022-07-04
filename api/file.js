@@ -98,7 +98,7 @@ router.post("/upload", (req, res, next) => {
                         percentage: 0
                     }
 
-                    if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
+                    if (req.body.username != null && req.body.password != null && req.body.username.length <= 15 && /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
                         sentBy = await new Promise((resolve) => {
                             let hasRows = false, dataRow = null;
 
@@ -173,7 +173,7 @@ router.post("/upload", (req, res, next) => {
 
                             connection.close();
 
-                            res.status(200).json({ code: 0, progressUrl: package.url + "file/progress/" + fileCode });
+                            res.status(200).json({ code: 0, value: { progressUrl: package.url + "file/progress/" + fileCode } });
 
                             const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
                             const containerClient = blobServiceClient.getContainerClient(fileCode);
@@ -274,7 +274,7 @@ router.post("/:code", async (req, res, next) => {
                             return;
                         }
 
-                        if (req.body.username != null && req.body.password != null && req.body.username.length > 15 || /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
+                        if (req.body.username != null && req.body.password != null && req.body.username.length <= 15 && /^[a-zA-Z0-9_.-]*$/.test(req.body.username) && req.body.password.length == 128) {
                             let transferID = await (await axios.get(package.url + "file/" + req.params.code + "/info", { validateStatus: () => true })).data.value.id;
                             let receivedBy = await new Promise((resolve) => {
                                 let hasRows = false, dataRow = null;
@@ -473,10 +473,7 @@ router.get("/progress/:code", async (req, res, next) => {
                 if (progress.percentage == 100)
                     delete progresses[req.params.code];
                 
-                res.status(200).json({
-                    code: 0,
-                    value: progress
-                });
+                res.status(200).json({ code: 0, value: progress });
             }
         }
     }
