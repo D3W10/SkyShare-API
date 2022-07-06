@@ -87,7 +87,7 @@ router.post("/signup", async (req, res, next) => {
             res.status(400).json({ code: 20, message: "The image size cannot be over 3 MB" });
         else if (req.files != undefined && req.files.picture != undefined && !["image/png", "image/jpeg"].includes(req.files.picture.mimetype))
             res.status(400).json({ code: 21, message: "The image was not in the correct type" });
-        else if (apiResult.code == 0 && !apiResult.value)
+        else if (apiResult.code != 0 || (apiResult.code == 0 && !apiResult.value))
             res.status(400).json({ code: 7, message: "A user with this username already exists" });
         else {
             const connection = new Connection(config);
@@ -273,6 +273,12 @@ router.post("/recovery/check", (req, res, next) => {
 
 router.post("/recovery/password", (req, res, next) => {
     try {
+        let apiResult = { code: 0, value: false }, loggedOn = -1;
+        if (req.body.username != null && req.body.recoveryKey != null)
+            apiResult = await (await axios.post(package.url + "user/recovery/check", { username: req.body.username, recoveryKey: req.body.recoveryKey }, { validateStatus: () => true })).data;
+        if (req.body.username != null && req.body.newPassword != null)
+            loggedOn = await (await axios.post(package.url + "user/login", { username: req.body.username, password: req.body.newPassword }, { validateStatus: () => true })).data.code;
+
         if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
         else if (req.body.username.length > 15 || !/^[a-zA-Z0-9_.-]*$/.test(req.body.username))
@@ -281,6 +287,10 @@ router.post("/recovery/password", (req, res, next) => {
             res.status(400).json({ code: 14, message: "The recovery key provided is not valid" });
         else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.newPassword))
             res.status(400).json({ code: 6, message: "The new password is not valid" });
+        else if (apiResult.code != 0 || (apiResult.code == 0 && !apiResult.value))
+            res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
+        else if (loggedOn != 0)
+            res.status(400).json({ code: 17, message: "Both passwords are the same" });
         else {
             const connection = new Connection(config);
             connection.on("connect", (error) => {
@@ -364,7 +374,7 @@ router.post("/:username/edit/info", async (req, res, next) => {
             res.status(400).json({ code: 20, message: "The image size cannot be over 3 MB" });
         else if (req.files != undefined && req.files.picture != undefined && !["image/png", "image/jpeg"].includes(req.files.picture.mimetype))
             res.status(400).json({ code: 21, message: "The image was not in the correct type" });
-        else if (req.body.newUsername != null && apiResult.code == 0 && !apiResult.value)
+        else if (req.body.newUsername != null && (apiResult.code != 0 || (apiResult.code == 0 && !apiResult.value)))
             res.status(400).json({ code: 8, message: "A user with this username already exists" });
         else {
             const connection = new Connection(config);
