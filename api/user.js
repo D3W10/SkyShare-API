@@ -48,9 +48,10 @@ router.post("/login", (req, res, next) => {
                 request.on("requestCompleted", async () => {
                     connection.close();
 
-                    let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
-                    if (hasRows)
+                    if (hasRows) {
+                        let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                         res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null } });
+                    }
                     else
                         res.status(400).json({ code: 7, message: "Wrong username or password" });
                 });
@@ -141,9 +142,10 @@ router.post("/signup", async (req, res, next) => {
                         });
                     }
 
-                    let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
-                    if (hasRows)
+                    if (hasRows) {
+                        let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                         res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null, recoveryKey: recoveryKey } });
+                    }
                     else
                         res.status(500).json({ code: 9, message: "There was an error while trying to create the account" });
                 });
@@ -277,7 +279,7 @@ router.post("/recovery/password", async (req, res, next) => {
         if (req.body.username != null && req.body.recoveryKey != null)
             apiResult = await (await axios.post(package.url + "user/recovery/check", { username: req.body.username, recoveryKey: req.body.recoveryKey }, { validateStatus: () => true })).data;
         if (req.body.username != null && req.body.newPassword != null)
-            loggedOn = await (await axios.post(package.url + "user/login", { username: req.body.username, password: req.body.newPassword }, { validateStatus: () => true })).data.code;
+            loggedOn = await (await axios.post(package.url + "user/login", { username: req.body.username, password: crypto.createHash("sha512").update(req.body.newPassword).digest("hex") }, { validateStatus: () => true })).data.code;
 
         if (req.body.username == null || req.body.recoveryKey == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
@@ -289,7 +291,7 @@ router.post("/recovery/password", async (req, res, next) => {
             res.status(400).json({ code: 6, message: "The new password is not valid" });
         else if (apiResult.code != 0 || (apiResult.code == 0 && !apiResult.value))
             res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
-        else if (loggedOn != 0)
+        else if (loggedOn == 0)
             res.status(400).json({ code: 17, message: "Both passwords are the same" });
         else {
             const connection = new Connection(config);
@@ -329,9 +331,10 @@ router.post("/recovery/password", async (req, res, next) => {
                 request.on("requestCompleted", async () => {
                     connection.close();
 
-                    let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
-                    if (hasRows)
+                    if (hasRows) {
+                        let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                         res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null, recoveryKey: recoveryKey } });
+                    }
                     else
                         res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
                 });
@@ -524,9 +527,10 @@ router.post("/:username/edit/password", (req, res, next) => {
                         request.on("requestCompleted", async () => {
                             connection.close();
 
-                            let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
-                            if (hasRows)
+                            if (hasRows) {
+                                let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                                 res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null } });
+                            }
                             else
                                 res.status(500).json({ code: 13, message: "There was an error while changing your password" });
                         });
