@@ -271,7 +271,7 @@ router.post("/recovery/check", (req, res, next) => {
     }
 });
 
-router.post("/recovery/password", (req, res, next) => {
+router.post("/recovery/password", async (req, res, next) => {
     try {
         let apiResult = { code: 0, value: false }, loggedOn = -1;
         if (req.body.username != null && req.body.recoveryKey != null)
