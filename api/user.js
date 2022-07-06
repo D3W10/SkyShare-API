@@ -82,7 +82,7 @@ router.post("/signup", async (req, res, next) => {
             res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.email.length > 250 || !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(req.body.email))
             res.status(400).json({ code: 4, message: "The email provided is not valid" });
-        else if (req.body.password.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.password))
+        else if (req.body.password.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/.test(req.body.password))
             res.status(400).json({ code: 5, message: "The password provided is not valid" });
         else if (req.files != undefined && req.files.picture != undefined && req.files.picture.size > 3145728)
             res.status(400).json({ code: 20, message: "The image size cannot be over 3 MB" });
@@ -287,7 +287,7 @@ router.post("/recovery/password", async (req, res, next) => {
             res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.recoveryKey.length != 128)
             res.status(400).json({ code: 14, message: "The recovery key provided is not valid" });
-        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.newPassword))
+        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/.test(req.body.newPassword))
             res.status(400).json({ code: 6, message: "The new password is not valid" });
         else if (apiResult.code != 0 || (apiResult.code == 0 && !apiResult.value))
             res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
@@ -481,7 +481,7 @@ router.post("/:username/edit/password", (req, res, next) => {
             res.status(400).json({ code: 3, message: "The username provided is not valid" });
         else if (req.body.password.length != 128)
             res.status(400).json({ code: 5, message: "The password provided is not valid" });
-        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(req.body.newPassword))
+        else if (req.body.newPassword.length > 50 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/.test(req.body.newPassword))
             res.status(400).json({ code: 6, message: "The new password is not valid" });
         else if (req.body.password == crypto.createHash("sha512").update(req.body.newPassword).digest("hex"))
             res.status(400).json({ code: 17, message: "Both passwords are the same" });
