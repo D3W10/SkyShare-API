@@ -143,7 +143,7 @@ router.post("/signup", async (req, res, next) => {
 
                     let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                     if (hasRows)
-                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null } });
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null, recoveryKey: recoveryKey } });
                     else
                         res.status(500).json({ code: 9, message: "There was an error while trying to create the account" });
                 });
@@ -321,7 +321,7 @@ router.post("/recovery/password", (req, res, next) => {
 
                     let pictureUrl = pictureUrlTemplate.replace("{0}", dataRow[0].value);
                     if (hasRows)
-                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null } });
+                        res.status(200).json({ code: 0, value: { username: dataRow[0].value, email: dataRow[1].value, picture: (await axios.get(pictureUrl, { validateStatus: () => true })).status == 200 ? pictureUrl : null, recoveryKey: recoveryKey } });
                     else
                         res.status(400).json({ code: 15, message: "Wrong username or recovery key" });
                 });
