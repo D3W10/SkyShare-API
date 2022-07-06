@@ -159,7 +159,7 @@ router.post("/upload", (req, res, next) => {
                                     request.addParameter("BelongsTo", TYPES.Int, sentBy);
                                     request.addParameter("Type", TYPES.Int, 0);
                                     request.addParameter("Transfer", TYPES.Int, dataRow[0].value);
-                                    request.addParameter("CreationDate", TYPES.Date, creationDate);
+                                    request.addParameter("CreationDate", TYPES.DateTime, creationDate);
 
                                     request.on("requestCompleted", () => resolve());
                                     request.on("error", (error) => {
@@ -316,7 +316,7 @@ router.post("/:code", async (req, res, next) => {
                                     request.addParameter("BelongsTo", TYPES.Int, receivedBy);
                                     request.addParameter("Type", TYPES.Int, 1);
                                     request.addParameter("Transfer", TYPES.Int, transferID);
-                                    request.addParameter("CreationDate", TYPES.Date, new Date());
+                                    request.addParameter("CreationDate", TYPES.DateTime, new Date());
 
                                     request.on("requestCompleted", () => resolve());
                                     request.on("error", (error) => {
