@@ -353,7 +353,7 @@ router.post("/recovery/password", async (req, res, next) => {
     }
 });
 
-router.post("/:username/edit/info", async (req, res, next) => {
+router.put("/:username/edit/info", async (req, res, next) => {
     try {
         let apiResult = { code: 0, value: false };
         if (req.body.newUsername != null)
@@ -473,7 +473,7 @@ router.post("/:username/edit/info", async (req, res, next) => {
     }
 });
 
-router.post("/:username/edit/password", (req, res, next) => {
+router.put("/:username/edit/password", (req, res, next) => {
     try {
         if (req.params.username == null || req.body.password == null || req.body.newPassword == null)
             res.status(400).json({ code: 1, message: "One of the required parameters is missing" });
