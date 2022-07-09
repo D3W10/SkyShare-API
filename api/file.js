@@ -13,6 +13,8 @@ var progresses = {};
 
 router.post("/upload", (req, res, next) => {
     try {
+        res.header("Access-Control-Allow-Origin", package.cors);
+
         if (req.files == undefined)
             res.status(400).json({ code: 22, message: "No files were sent on the request" });
         else if (req.body.message && req.body.message.length > 255)
@@ -238,6 +240,86 @@ router.post("/upload", (req, res, next) => {
     }
 });
 
+router.get("/:code", async (req, res, next) => {
+    try {
+        res.header("Access-Control-Allow-Origin", package.cors);
+
+        if (req.params.code.length != 6 && !/^\d{6}$/g.test(req.params.code))
+            res.status(400).json({ code: 27, message: "Not a valid transfer code" });
+        else {
+            const connection = new Connection(config);
+            connection.on("connect", (error) => {
+                if (error)
+                    next(error);
+                else
+                    queryDatabase();
+            });
+
+            connection.connect();
+
+            function queryDatabase() {
+                let hasRows = false, dataRow = null;
+
+                const request = new Request("SP_VerifyTransferCode", (error) => {
+                    if (error)
+                        next(error);
+                });
+
+                request.addParameter("Code", TYPES.VarChar, req.params.code);
+
+                request.on("row", (columns) => {
+                    hasRows = true;
+                    dataRow = columns;
+                });
+                request.on("requestCompleted", async () => {
+                    if (hasRows) {
+                        if (dataRow[0].value == 0) {
+                            res.status(400).json({ code: 28, message: "A transfer does not exist with that code" });
+                            return;
+                        }
+
+                        connection.close();
+
+                        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.connection);
+                        const containerClient = blobServiceClient.getContainerClient(req.params.code);
+                        const blobList = (await containerClient.listBlobsFlat().byPage({ maxPageSize: 50 }).next()).value;
+
+                        if (blobList.segment.blobItems.length == 1) {
+                            res.setHeader("Content-Disposition", `attachment; filename="${blobList.segment.blobItems[0].name}"`);
+                            res.status(200).end(await containerClient.getBlobClient(blobList.segment.blobItems[0].name).downloadToBuffer());
+                        }
+                        else {
+                            var transferZip = new AdmZip();
+
+                            for (const blob of blobList.segment.blobItems) {
+                                let blobclient = containerClient.getBlobClient(blob.name);
+                                transferZip.addFile(blob.name, await blobclient.downloadToBuffer());
+                            }
+
+                            res.setHeader("Content-Disposition", `attachment; filename="${req.params.code}.zip"`);
+                            res.status(200).end(await transferZip.toBufferPromise());
+                        }
+                    }
+                    else {
+                        connection.close();
+                        next();
+                    }
+                });
+                request.on("error", (error) => {
+                    connection.close();
+                    console.error(error);
+                    res.status(500).json({ code: 29, message: "The code could not be verified" });
+                });
+
+                connection.callProcedure(request);
+            }
+        }
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
 router.post("/:code", async (req, res, next) => {
     try {
         if (req.params.code.length != 6 && !/^\d{6}$/g.test(req.params.code))
@@ -373,6 +455,8 @@ router.post("/:code", async (req, res, next) => {
 
 router.get("/:code/info", async (req, res, next) => {
     try {
+        res.header("Access-Control-Allow-Origin", package.cors);
+
         if (req.params.code.length != 6 && !/^\d{6}$/g.test(req.params.code))
             res.status(400).json({ code: 27, message: "Not a valid transfer code" });
         else {
@@ -402,6 +486,7 @@ router.get("/:code/info", async (req, res, next) => {
                 });
                 request.on("requestCompleted", async () => {
                     if (hasRows && dataRow[0].value == 0) {
+                        connection.close();
                         res.status(400).json({ code: 28, message: "A transfer does not exist with that code" });
                         return;
                     }
@@ -463,6 +548,8 @@ router.get("/:code/info", async (req, res, next) => {
 
 router.get("/progress/:code", async (req, res, next) => {
     try {
+        res.header("Access-Control-Allow-Origin", package.cors);
+
         if (req.params.code.length != 6 && !/^\d{6}$/g.test(req.params.code))
             res.status(400).json({ code: 27, message: "Not a valid transfer code" });
         else {

@@ -11,6 +11,7 @@
     "keywords": [],
     "license": "Proprietary",
     "url": "https://skyshare-api.herokuapp.com/",
+    "cors": "skyshare.pt",
     "dependencies": {
         "@azure/storage-blob": "^12.10.0",
         "adm-zip": "^0.5.9",
