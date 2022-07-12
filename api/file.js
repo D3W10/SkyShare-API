@@ -48,7 +48,7 @@ router.post("/upload", (req, res, next) => {
 
                 async function queryDatabase() {
                     let fileCode = null, sentBy = null, creationDate = new Date(), expireDate = new Date(), pgrSplit = 100 / req.files.file.length;
-                    expireDate.setDate(expireDate.getDate() + 8);
+                    expireDate.setDate(expireDate.getDate() + 7);
 
                     for (let i = 0; i < 50; i++) {
                         let promiseResult = await new Promise((resolve, reject) => {
