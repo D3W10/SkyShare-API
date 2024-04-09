@@ -28,7 +28,7 @@ export async function GET({ request }) {
             return json({ ...getSuccess(), value: { username: user.getUsername(), email: user.getEmail(), photo: (user.get("photo") as Parse.File | null)?.url() } }, { status: 200 });
         }
         catch {
-            return json(getError(ErrorCode.UNKNOWN_SIGNUP), { status: 500 });
+            return json(getError(ErrorCode.WRONG_USERPASS), { status: 400 });
         }
     }
     catch (error) {
