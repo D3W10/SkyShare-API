@@ -23,6 +23,7 @@
     "type": "module",
     "dependencies": {
         "@types/parse": "^3.0.9",
+        "mime": "^4.0.1",
         "parse": "^4.3.1"
     },
     "devDependencies": {

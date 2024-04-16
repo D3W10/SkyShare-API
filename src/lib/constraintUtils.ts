@@ -20,8 +20,8 @@ export function checkPhotoSize(photo: string) {
     return (photo.length * (3 / 4)) - (/=/g.exec(photo) ?? []).length <= 3145728;
 }
 
-export function checkPhoto(type: string, extension: string) {
-    return ["image/png", "image/jpg", "image/jpeg", "image/gif"].includes(type) && /^[a-zA-Z]+$/g.test(extension);
+export function checkPhoto(type: string) {
+    return ["image/png", "image/jpg", "image/jpeg", "image/gif"].includes(type);
 }
 
 export async function checkAvailability(username: string) {

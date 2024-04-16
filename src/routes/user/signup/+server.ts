@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { json } from "@sveltejs/kit";
+import mime from "mime";
 import Parse from "$lib/parse";
 import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkPassword, checkPhotoSize, checkPhoto, checkAvailability } from "$lib/constraintUtils";
@@ -11,7 +12,6 @@ interface IBody {
     photo: {
         data: string;
         type: string;
-        extension: string;
     } | null;
 }
 
@@ -29,7 +29,7 @@ export async function POST({ request }) {
             return json(getError(ErrorCode.INVALID_PASSWORD), { status: 400 });
         else if (photo && photo.data && !checkPhotoSize(photo.data))
             return json(getError(ErrorCode.PHOTO_TOO_BIG), { status: 400 });
-        else if (photo && photo.type && photo.extension && !checkPhoto(photo.type, photo.extension))
+        else if (photo && photo.data && photo.type && !checkPhoto(photo.type))
             return json(getError(ErrorCode.INVALID_PHOTO), { status: 400 });
         else if (!await checkAvailability(username))
             return json(getError(ErrorCode.USERNAME_UNAVAILABLE), { status: 400 });
@@ -41,7 +41,7 @@ export async function POST({ request }) {
         user.set("password", crypto.createHash("sha512").update(password).digest("hex"));
 
         if (photo)
-            user.set("photo", new Parse.File("photo." + photo.extension, { base64: photo.data }));
+            user.set("photo", new Parse.File("photo." + mime.getExtension(photo.type), { base64: photo.data }));
 
         try {
             let userInfo = await user.signUp();
