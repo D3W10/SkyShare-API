@@ -40,7 +40,7 @@ export async function POST({ request }) {
                 from: "SkyShare <noreply@skyshare.pt>",
                 to: user.get("email"),
                 subject: lang == "en" ? "Verify your email address" : "Verifique o seu endereço de email",
-                html: getEmail("verify", lang, username, (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.svg", `https://skyshare.vercel.app/signal?action=verify&token=${user.get("verificationToken")}`)
+                html: getEmail("verify", lang, username, (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.png", `https://skyshare.vercel.app/signal?action=verify&token=${user.get("verificationToken")}`)
             };
         }
         else if (type == "recovery") {
@@ -51,7 +51,7 @@ export async function POST({ request }) {
                 from: "SkyShare <noreply@skyshare.pt>",
                 to: user.get("email"),
                 subject: lang == "en" ? "Reset your account password" : "Redefinir a sua palavra-passe",
-                html: getEmail("recovery", lang, username, (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.svg", `https://skyshare.vercel.app/signal?action=recovery&token=${user.get("recoveryToken")}`)
+                html: getEmail("recovery", lang, username, (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.png", `https://skyshare.vercel.app/signal?action=recovery&token=${user.get("recoveryToken")}`)
             };
         }
 
