@@ -27,5 +27,5 @@ export function checkPhoto(type: string) {
 export async function checkAvailability(username: string) {
     const query: Parse.Query = new Parse.Query("User").equalTo("username", username);
     
-    return (await query.find()).length == 0;
+    return (await query.count()) == 0;
 }
