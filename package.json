@@ -22,13 +22,16 @@
     "license": "MPL-2.0",
     "type": "module",
     "dependencies": {
-        "@types/parse": "^3.0.9",
+        "keygen": "^0.4.0",
         "mime": "^4.0.1",
+        "nodemailer": "^6.9.13",
         "parse": "^4.3.1"
     },
     "devDependencies": {
         "@sveltejs/adapter-vercel": "^5.1.1",
         "@sveltejs/kit": "^2.5.0",
+        "@types/nodemailer": "^6.4.14",
+        "@types/parse": "^3.0.9",
         "svelte": "^4.2.10",
         "svelte-check": "^3.6.3",
         "svelte-preprocess": "^5.1.3",
