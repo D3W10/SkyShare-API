@@ -24,8 +24,6 @@ export function checkPhoto(type: string) {
     return ["image/png", "image/jpg", "image/jpeg", "image/gif"].includes(type);
 }
 
-export async function checkAvailability(username: string) {
-    const query: Parse.Query = new Parse.Query("User").equalTo("username", username);
-    
-    return (await query.count()) == 0;
+export async function checkAvailability(field: "username" | "email", value: string) {
+    return (await new Parse.Query("User").equalTo(field, value).count()) == 0;
 }

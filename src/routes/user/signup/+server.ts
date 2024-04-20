@@ -31,8 +31,10 @@ export async function POST({ request }) {
             return json(getError(ErrorCode.PHOTO_TOO_BIG), { status: 400 });
         else if (photo && photo.data && photo.type && !checkPhoto(photo.type))
             return json(getError(ErrorCode.INVALID_PHOTO), { status: 400 });
-        else if (!await checkAvailability(username))
+        else if (!await checkAvailability("username", username))
             return json(getError(ErrorCode.USERNAME_UNAVAILABLE), { status: 400 });
+        else if (!await checkAvailability("email", email))
+            return json(getError(ErrorCode.EMAIL_UNAVAILABLE), { status: 400 });
 
         const user: Parse.User = new Parse.User();
 
