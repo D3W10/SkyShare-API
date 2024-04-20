@@ -3,15 +3,15 @@ import Parse from "$lib/parse";
 import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
 import { checkUsername, checkEncodedPassword } from "$lib/constraintUtils";
 
-interface IBody {
+interface IParams {
     username: string;
     password: string;
 }
 
 export async function GET({ request }) {
     try {
-        const params = {} as IBody;
-        new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IBody] = value);
+        const params = {} as IParams;
+        new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IParams] = value as any);
 
         const { username, password } = params;
 

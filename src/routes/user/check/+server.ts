@@ -2,14 +2,14 @@ import { json } from "@sveltejs/kit";
 import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
 import { checkUsername, checkAvailability } from "$lib/constraintUtils";
 
-interface IBody {
+interface IParams {
     username: string;
 }
 
 export async function GET({ request }) {
     try {
-        const params = {} as IBody;
-        new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IBody] = value);
+        const params = {} as IParams;
+        new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IParams] = value as any);
 
         const { username } = params;
 
