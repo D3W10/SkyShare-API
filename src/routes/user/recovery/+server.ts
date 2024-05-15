@@ -29,7 +29,7 @@ export async function POST({ request }) {
             return json(getError(ErrorCode.INVALID_RECOVERY_TOKEN), { status: 400 });
 
         user.set("password", crypto.createHash("sha512").update(password).digest("hex"));
-        user.set("recoveryToken", undefined);
+        user.unset("recoveryToken");
         await user.save(null, { useMasterKey : true });
 
         return json(getSuccess(), { status: 200 });
