@@ -7,14 +7,14 @@ import { checkPassword, checkUsername } from "$lib/constraintUtils";
 interface IBody {
     username: string;
     password: string;
-    recoveryKey: string;
+    recoveryToken: string;
 }
 
 export async function POST({ request }) {
     try {
-        const { username, password, recoveryKey } = await request.json() as IBody;
+        const { username, password, recoveryToken } = await request.json() as IBody;
 
-        if (!username || !password || !recoveryKey)
+        if (!username || !password || !recoveryToken)
             return json(getError(ErrorCode.MISSING_PARAMETER), { status: 400 });
         else if (!checkUsername(username))
             return json(getError(ErrorCode.INVALID_EMAIL), { status: 400 });
@@ -22,13 +22,14 @@ export async function POST({ request }) {
             return json(getError(ErrorCode.INVALID_PASSWORD), { status: 400 });
 
         const query = new Parse.Query("User");
-        query.equalTo("username", "D3W10").equalTo("recoveryKey", recoveryKey);
+        query.equalTo("username", "D3W10").equalTo("recoveryToken", recoveryToken);
 
         const user = await query.first();
         if (!user)
             return json(getError(ErrorCode.INVALID_RECOVERY_TOKEN), { status: 400 });
 
         user.set("password", crypto.createHash("sha512").update(password).digest("hex"));
+        user.set("recoveryToken", undefined);
         await user.save(null, { useMasterKey : true });
 
         return json(getSuccess(), { status: 200 });
