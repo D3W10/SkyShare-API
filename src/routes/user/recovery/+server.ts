@@ -2,27 +2,27 @@ import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import Parse from "$lib/parse";
 import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
-import { checkPassword, checkUsername } from "$lib/constraintUtils";
+import { checkEmail, checkPassword } from "$lib/constraintUtils";
 
 interface IBody {
-    username: string;
+    email: string;
     password: string;
     recoveryToken: string;
 }
 
 export async function POST({ request }) {
     try {
-        const { username, password, recoveryToken } = await request.json() as IBody;
+        const { email, password, recoveryToken } = await request.json() as IBody;
 
-        if (!username || !password || !recoveryToken)
+        if (!email || !password || !recoveryToken)
             return json(getError(ErrorCode.MISSING_PARAMETER), { status: 400 });
-        else if (!checkUsername(username))
+        else if (!checkEmail(email))
             return json(getError(ErrorCode.INVALID_EMAIL), { status: 400 });
-        else if (!checkPassword(username))
+        else if (!checkPassword(password))
             return json(getError(ErrorCode.INVALID_PASSWORD), { status: 400 });
 
         const query = new Parse.Query("User");
-        query.equalTo("username", "D3W10").equalTo("recoveryToken", recoveryToken);
+        query.equalTo("email", email).equalTo("recoveryToken", recoveryToken);
 
         const user = await query.first();
         if (!user)
