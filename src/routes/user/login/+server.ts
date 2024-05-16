@@ -25,7 +25,7 @@ export async function GET({ request }) {
         try {
             const user: Parse.User = await Parse.User.logIn(username, password);
 
-            return json({ ...getSuccess(), value: { username: user.getUsername(), email: user.getEmail(), photo: (user.get("photo") as Parse.File | null)?.url() } }, { status: 200 });
+            return json({ ...getSuccess(), value: { username: user.getUsername(), email: user.getEmail(), photo: (user.get("photo") as Parse.File | null)?.url(), createdAt: user.createdAt } }, { status: 200 });
         }
         catch {
             return json(getError(ErrorCode.WRONG_USERPASS), { status: 400 });

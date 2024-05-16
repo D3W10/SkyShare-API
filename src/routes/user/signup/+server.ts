@@ -48,7 +48,7 @@ export async function POST({ request }) {
         try {
             let userInfo = await user.signUp();
 
-            return json({ ...getSuccess(), value: { username: userInfo.getUsername(), email: userInfo.getEmail(), photo: (userInfo.get("photo") as Parse.File | null)?.url() } }, { status: 200 });
+            return json({ ...getSuccess(), value: { username: userInfo.getUsername(), email: userInfo.getEmail(), photo: (userInfo.get("photo") as Parse.File | null)?.url(), createdAt: userInfo.createdAt } }, { status: 200 });
         }
         catch {
             return json(getError(ErrorCode.UNKNOWN_SIGNUP), { status: 500 });
