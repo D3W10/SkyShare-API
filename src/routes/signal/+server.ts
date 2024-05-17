@@ -1,14 +1,14 @@
 import { redirect } from "@sveltejs/kit";
 
-interface IParams {
+interface IQuery {
     action: "verify" | "recovery";
     token: string;
 }
 
 export async function GET({ request }) {
-    const params = {} as IParams;
-    new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IParams] = value as any);
+    const query = {} as IQuery;
+    new URL(request.url).searchParams.forEach((value, key) => query[key as keyof IQuery] = value as any);
 
-    const { action, token } = params;
+    const { action, token } = query;
     return redirect(303, ["verify", "recovery"].includes(action) && token ? `skyshare://${action}/${token}` : "skyshare://");
 }

@@ -2,17 +2,17 @@ import { json } from "@sveltejs/kit";
 import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkAvailability } from "$lib/constraintUtils";
 
-interface IParams {
+interface IQuery {
     username: string;
     email: string;
 }
 
 export async function GET({ request }) {
     try {
-        const params = {} as IParams;
-        new URL(request.url).searchParams.forEach((value, key) => params[key as keyof IParams] = value as any);
+        const query = {} as IQuery;
+        new URL(request.url).searchParams.forEach((value, key) => query[key as keyof IQuery] = value as any);
 
-        const { username, email } = params;
+        const { username, email } = query;
 
         if (!username || !email)
             return json(getError(ErrorCode.MISSING_PARAMETER), { status: 400 });
