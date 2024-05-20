@@ -17,7 +17,8 @@ export function checkEncodedPassword(password: string) {
 }
 
 export function checkPhotoSize(photo: string) {
-    return (photo.length * (3 / 4)) - (/=/g.exec(photo) ?? []).length <= 3145728;
+    let len = (photo.length * (3 / 4)) - (/=/g.exec(photo) ?? []).length;
+    return len <= 3145728 && len > 0;
 }
 
 export function checkPhoto(type: string) {
