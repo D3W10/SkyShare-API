@@ -35,7 +35,12 @@
 
 SkyShare API is the interface that provides services that the SkyShare products rely on to work properly. This includes all account related options and the file sharing service.
 
-> If you're looking for the SkyShare application, check out [this repository instead](https://github.com/D3W10/SkyShare).
+This project consists in three different subprojects:
+> 🖥️&emsp;SkyShare [Desktop App](https://github.com/D3W10/SkyShare)
+>
+> 🔌&emsp;SkyShare [API](https://github.com/D3W10/SkyShare-API)
+>
+> 🌐&emsp;SkyShare [Website](https://github.com/D3W10/SkyShare-Website)
 
 <br />
 
@@ -90,4 +95,4 @@ Distributed under the Mozilla Public License 2.0. Check `LICENSE` for more detai
 
 ## Credits
 
-- Made by [D3W10](https://d3w10.netlify.app/)
+- Made by [Daniel Nunes](https://d3w10.netlify.app/)
