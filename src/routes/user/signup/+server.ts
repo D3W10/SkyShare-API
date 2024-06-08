@@ -50,7 +50,9 @@ export async function POST({ request }) {
 
             return json({ ...getSuccess(), value: { username: userInfo.getUsername(), email: userInfo.getEmail(), photo: (userInfo.get("photo") as Parse.File | null)?.url(), createdAt: userInfo.createdAt } }, { status: 200 });
         }
-        catch {
+        catch (error) {
+            console.error(error);
+
             return json(getError(ErrorCode.UNKNOWN_SIGNUP), { status: 500 });
         }
     }

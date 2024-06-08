@@ -51,19 +51,23 @@ export async function PUT({ request, params }) {
 
         if (newUsername)
             user.setUsername(newUsername);
-        if (email)
+        if (email) {
             user.setEmail(email);
+            user.set("emailVerified", false);
+        }
         if (photo)
             user.set("photo", new Parse.File("photo." + mime.getExtension(photo.type), { base64: photo.data }));
         if (photo == null)
             user.unset("photo");
 
         try {
-            let response: Parse.User = await user.save();
+            let response: Parse.User = await user.save(null, { useMasterKey: true });
 
             return json({ ...getSuccess(), value: { username: response.getUsername(), email: response.getEmail(), photo: (response.get("photo") as Parse.File | null)?.url(), createdAt: response.createdAt } }, { status: 200 });
         }
-        catch {
+        catch (error) {
+            console.error(error);
+
             return json(getError(ErrorCode.UNKNOWN_EDIT), { status: 500 });
         }
     }
