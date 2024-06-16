@@ -57,7 +57,7 @@ export async function PUT({ request, params }) {
         }
         if (photo)
             user.set("photo", new Parse.File("photo." + mime.getExtension(photo.type), { base64: photo.data }));
-        if (photo == null)
+        if (photo === null)
             user.unset("photo");
 
         try {
