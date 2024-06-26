@@ -1,5 +1,6 @@
 export enum ErrorCode {
-    MISSING_PARAMETER = 1, NO_PARAMETERS,
+    SERVER_ERROR = -1, SUCCESS,
+    MISSING_PARAMETER, NO_PARAMETERS,
     INVALID_USERNAME, INVALID_EMAIL,
     INVALID_PASSWORD, INVALID_NEW_USERNAME,
     INVALID_NEW_EMAIL, INVALID_NEW_PASSWORD,
@@ -7,10 +8,12 @@ export enum ErrorCode {
     EMAIL_UNAVAILABLE, PHOTO_TOO_BIG,
     INVALID_PHOTO, UNKNOWN_SIGNUP,
     INVALID_REQUEST_TYPE, INVALID_RECOVERY_TOKEN,
-    UNKNOWN_EDIT
+    UNKNOWN_EDIT, UNKNOWN_PASSWORD
 }
 
 const errorList =  {
+    [ErrorCode.SERVER_ERROR]: "Server error",
+    [ErrorCode.SUCCESS]: "Success",
     [ErrorCode.MISSING_PARAMETER]: "Required parameters are missing",
     [ErrorCode.NO_PARAMETERS]: "No parameters were provided",
     [ErrorCode.INVALID_USERNAME]: "Invalid username",
@@ -27,17 +30,28 @@ const errorList =  {
     [ErrorCode.UNKNOWN_SIGNUP]: "Unknown signup error",
     [ErrorCode.INVALID_REQUEST_TYPE]: "Invalid request type",
     [ErrorCode.INVALID_RECOVERY_TOKEN]: "Invalid recovery token",
-    [ErrorCode.UNKNOWN_EDIT]: "Unknown edit error"
+    [ErrorCode.UNKNOWN_EDIT]: "Unknown edit error",
+    [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error"
 }
 
-export function getError(error: ErrorCode) {
-    return { code: error, message: errorList[error] };
+interface ServerRes {
+    code: ErrorCode;
+    message: string;
+    value?: any;
 }
 
-export function getSuccess() {
-    return { code: 0, message: "Success" };
+interface UserData {
+    username: string;
+    email: string;
+    photo?: string;
+    createdAt: Date;
+    emailVerified: boolean;
 }
 
-export function getServerError() {
-    return { code: -1, message: "Server error" };
+export function getRes(error: ErrorCode, value?: any): ServerRes {
+    return { code: error, message: errorList[error], value };
+}
+
+export function getUser(user: Parse.User<Parse.Attributes>): UserData {
+    return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified") };
 }

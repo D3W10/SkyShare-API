@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
+import { ErrorCode, getRes } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkAvailability } from "$lib/constraintUtils";
 
 interface IQuery {
@@ -15,17 +15,17 @@ export async function GET({ request }) {
         const { username, email } = query;
 
         if (!username || !email)
-            return json(getError(ErrorCode.MISSING_PARAMETER), { status: 400 });
+            return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
         else if (!checkUsername(username))
-            return json(getError(ErrorCode.INVALID_USERNAME), { status: 400 });
+            return json(getRes(ErrorCode.INVALID_USERNAME), { status: 400 });
         else if (!checkEmail(email))
-            return json(getError(ErrorCode.INVALID_EMAIL), { status: 400 });
+            return json(getRes(ErrorCode.INVALID_EMAIL), { status: 400 });
 
-        return json({ ...getSuccess(), value: { username: await checkAvailability("username", username), email: await checkAvailability("email", email) } }, { status: 200 });
+        return json(getRes(ErrorCode.SUCCESS, { username: await checkAvailability("username", username), email: await checkAvailability("email", email) }), { status: 200 });
     }
     catch (error) {
         console.error(error);
 
-        return json(getServerError(), { status: 500 });
+        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
     }
 }

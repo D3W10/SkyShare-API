@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import keygen from "keygen";
 import Parse from "$lib/parse";
 import nodemailer from "$lib/nodemailer";
-import { ErrorCode, getError, getSuccess, getServerError } from "$lib/errorManager";
+import { ErrorCode, getRes } from "$lib/errorManager";
 import { checkEmail } from "$lib/constraintUtils";
 import { getEmail } from "$lib/emails";
 import type Mail from "nodemailer/lib/mailer";
@@ -18,18 +18,18 @@ export async function POST({ request }) {
         const { type, email, language } = await request.json() as IBody;
 
         if (!type || !email)
-            return json(getError(ErrorCode.MISSING_PARAMETER), { status: 400 });
+            return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
         else if (!["verify", "recovery"].includes(type))
-            return json(getError(ErrorCode.INVALID_REQUEST_TYPE), { status: 400 });
+            return json(getRes(ErrorCode.INVALID_REQUEST_TYPE), { status: 400 });
         else if (!checkEmail(email))
-            return json(getError(ErrorCode.INVALID_EMAIL), { status: 400 });
+            return json(getRes(ErrorCode.INVALID_EMAIL), { status: 400 });
 
         const query = new Parse.Query("User"), lang = language && ["en", "pt"].includes(language) ? language : "en";
         query.equalTo("email", email);
 
         const user = await query.first({ useMasterKey: true });
         if (!user)
-            return json(getSuccess(), { status: 200 });
+            return json(getRes(ErrorCode.SUCCESS), { status: 200 });
 
         let emailConfig: Mail.Options = {};
         if (type == "verify") {
@@ -57,11 +57,11 @@ export async function POST({ request }) {
 
         await nodemailer.sendMail(emailConfig);
 
-        return json(getSuccess(), { status: 200 });
+        return json(getRes(ErrorCode.SUCCESS), { status: 200 });
     }
     catch (error) {
         console.error(error);
 
-        return json(getServerError(), { status: 500 });
+        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
     }
 }
