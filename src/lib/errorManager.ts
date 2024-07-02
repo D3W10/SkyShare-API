@@ -37,7 +37,7 @@ const errorList =  {
 interface ServerRes {
     code: ErrorCode;
     message: string;
-    value?: any;
+    value?: { [key: string]: any };
 }
 
 interface UserData {

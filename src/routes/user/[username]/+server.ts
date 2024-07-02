@@ -3,6 +3,7 @@ import mime from "mime";
 import Parse from "$lib/parse";
 import { ErrorCode, getRes, getUser } from "$lib/errorManager";
 import { checkUsername, checkEncodedPassword, checkEmail, checkPhotoSize, checkPhoto } from "$lib/constraintUtils";
+import { sendVerificationEmail } from "$lib/emails";
 
 interface IBody {
     username: string;
@@ -12,6 +13,7 @@ interface IBody {
         data: string;
         type: string;
     } | null;
+    language?: "en" | "pt";
 }
 
 interface IQuery {
@@ -21,7 +23,7 @@ interface IQuery {
 export async function PUT({ request, params }) {
     try {
         const { username } = params;
-        const { username: newUsername, email, password, photo } = await request.json() as IBody;
+        const { username: newUsername, email, password, photo, language } = await request.json() as IBody;
 
         if (!username || !password)
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
@@ -61,9 +63,12 @@ export async function PUT({ request, params }) {
             user.unset("photo");
 
         try {
-            let response: Parse.User = await user.save(null, { useMasterKey: true });
+            let newUser: Parse.User = await user.save(null, { useMasterKey: true });
 
-            return json(getRes(ErrorCode.SUCCESS, getUser(response)), { status: 200 });
+            if (email)
+                await sendVerificationEmail(newUser, language || "en");
+
+            return json(getRes(ErrorCode.SUCCESS, getUser(newUser)), { status: 200 });
         }
         catch (error) {
             console.error(error);

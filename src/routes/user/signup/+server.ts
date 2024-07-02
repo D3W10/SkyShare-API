@@ -4,6 +4,7 @@ import mime from "mime";
 import Parse from "$lib/parse";
 import { ErrorCode, getRes, getUser } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkPassword, checkPhotoSize, checkPhoto, checkAvailability } from "$lib/constraintUtils";
+import { sendVerificationEmail } from "$lib/emails.js";
 
 interface IBody {
     username: string;
@@ -13,11 +14,12 @@ interface IBody {
         data: string;
         type: string;
     } | null;
+    language?: "en" | "pt";
 }
 
 export async function POST({ request }) {
     try {
-        const { username, email, password, photo } = await request.json() as IBody;
+        const { username, email, password, photo, language } = await request.json() as IBody;
 
         if (!username || !email || !password)
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
@@ -46,9 +48,11 @@ export async function POST({ request }) {
             user.set("photo", new Parse.File("photo." + mime.getExtension(photo.type), { base64: photo.data }));
 
         try {
-            const response = await user.signUp();
+            const newUser = await user.signUp();
 
-            return json(getRes(ErrorCode.SUCCESS, getUser(response)), { status: 200 });
+            await sendVerificationEmail(newUser, language || "en");
+
+            return json(getRes(ErrorCode.SUCCESS, getUser(newUser)), { status: 200 });
         }
         catch (error) {
             console.error(error);

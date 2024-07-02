@@ -4,8 +4,7 @@ import Parse from "$lib/parse";
 import nodemailer from "$lib/nodemailer";
 import { ErrorCode, getRes } from "$lib/errorManager";
 import { checkEmail } from "$lib/constraintUtils";
-import { getEmail } from "$lib/emails";
-import type Mail from "nodemailer/lib/mailer";
+import { getEmail, sendVerificationEmail } from "$lib/emails";
 
 interface IBody {
     type: "verify" | "recovery";
@@ -31,31 +30,19 @@ export async function POST({ request }) {
         if (!user)
             return json(getRes(ErrorCode.SUCCESS), { status: 200 });
 
-        let emailConfig: Mail.Options = {};
-        if (type == "verify") {
-            user.set("verificationToken", keygen.hex(keygen.large));
-            await user.save(null, { useMasterKey : true });
-
-            emailConfig = {
-                from: "SkyShare <noreply@skyshare.pt>",
-                to: email,
-                subject: lang == "en" ? "Verify your email address" : "Verifique o seu endereço de email",
-                html: getEmail("verify", lang, user.get("username"), (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.png", `https://skyshare.vercel.app/signal?action=verify&token=${user.get("verificationToken")}`)
-            };
-        }
+        if (type == "verify")
+            await sendVerificationEmail(user, lang);
         else if (type == "recovery") {
             user.set("recoveryToken", keygen.hex(keygen.large));
             await user.save(null, { useMasterKey : true });
 
-            emailConfig = {
+            await nodemailer.sendMail({
                 from: "SkyShare <noreply@skyshare.pt>",
                 to: email,
                 subject: lang == "en" ? "Reset your account password" : "Redefinir a sua palavra-passe",
                 html: getEmail("recovery", lang, user.get("username"), (user.get("photo") as Parse.File | null)?.url() ?? "https://skyshare.vercel.app/account.png", `https://skyshare.vercel.app/signal?action=recovery&token=${user.get("recoveryToken")}`)
-            };
+            });
         }
-
-        await nodemailer.sendMail(emailConfig);
 
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });
     }
