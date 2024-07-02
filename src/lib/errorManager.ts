@@ -7,11 +7,12 @@ export enum ErrorCode {
     WRONG_USERPASS, USERNAME_UNAVAILABLE,
     EMAIL_UNAVAILABLE, PHOTO_TOO_BIG,
     INVALID_PHOTO, UNKNOWN_SIGNUP,
-    INVALID_REQUEST_TYPE, INVALID_RECOVERY_TOKEN,
-    UNKNOWN_EDIT, UNKNOWN_PASSWORD
+    INVALID_REQUEST_TYPE, INVALID_VERIFICATION_TOKEN,
+    INVALID_RECOVERY_TOKEN, UNKNOWN_EDIT,
+    UNKNOWN_PASSWORD
 }
 
-const errorList =  {
+const errorList = {
     [ErrorCode.SERVER_ERROR]: "Server error",
     [ErrorCode.SUCCESS]: "Success",
     [ErrorCode.MISSING_PARAMETER]: "Required parameters are missing",
@@ -29,6 +30,7 @@ const errorList =  {
     [ErrorCode.INVALID_PHOTO]: "Invalid photo",
     [ErrorCode.UNKNOWN_SIGNUP]: "Unknown signup error",
     [ErrorCode.INVALID_REQUEST_TYPE]: "Invalid request type",
+    [ErrorCode.INVALID_VERIFICATION_TOKEN]: "Invalid verification token",
     [ErrorCode.INVALID_RECOVERY_TOKEN]: "Invalid recovery token",
     [ErrorCode.UNKNOWN_EDIT]: "Unknown edit error",
     [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error"
