@@ -30,6 +30,7 @@ export async function POST({ request }) {
 
         user.set("password", crypto.createHash("sha512").update(password).digest("hex"));
         user.unset("recoveryToken");
+        user.unset("recoveryExpire");
         await user.save(null, { useMasterKey : true });
 
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });

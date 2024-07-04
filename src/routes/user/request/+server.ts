@@ -32,8 +32,9 @@ export async function POST({ request }) {
 
         if (type == "verify")
             await sendVerificationEmail(user, lang);
-        else if (type == "recovery") {
+        else if (type == "recovery" && (user.get("recoveryExpire") as Date).getTime() < Date.now()) {
             user.set("recoveryToken", keygen.hex(keygen.large));
+            user.set("recoveryExpire", new Date(Date.now() + 60000));
             await user.save(null, { useMasterKey : true });
 
             await nodemailer.sendMail({

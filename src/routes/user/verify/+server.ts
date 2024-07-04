@@ -26,6 +26,7 @@ export async function POST({ request }) {
 
         user.set("emailVerified", true);
         user.unset("verificationToken");
+        user.unset("verificationExpire");
         await user.save(null, { useMasterKey : true });
 
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });
