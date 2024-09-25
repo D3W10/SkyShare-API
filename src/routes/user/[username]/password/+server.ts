@@ -42,7 +42,7 @@ export async function PUT({ request, params }) {
         catch (error) {
             console.error(error);
 
-            return json(getRes(ErrorCode.UNKNOWN_EDIT), { status: 500 });
+            return json(getRes(ErrorCode.UNKNOWN_PASSWORD), { status: 500 });
         }
     }
     catch (error) {
