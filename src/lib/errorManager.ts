@@ -36,24 +36,36 @@ const errorList = {
     [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error"
 }
 
-interface ServerRes {
+interface IServerRes {
     code: ErrorCode;
     message: string;
     value?: { [key: string]: any };
 }
 
-interface UserData {
+interface IUserData {
     username: string;
     email: string;
     photo?: string;
     createdAt: Date;
     emailVerified: boolean;
+    settings: {
+        history: IHistoryEntry[];
+        historyEnabled: boolean;
+    };
 }
 
-export function getRes(error: ErrorCode, value?: any): ServerRes {
+interface IHistoryEntry {
+    code: string;
+    size: number;
+    secondary: string;
+    type: 0 | 1;
+    date: Date;
+}
+
+export function getRes(error: ErrorCode, value?: any): IServerRes {
     return { code: error, message: errorList[error], value };
 }
 
-export function getUser(user: Parse.User<Parse.Attributes>): UserData {
-    return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified") };
+export function getUser(user: Parse.User<Parse.Attributes>): IUserData {
+    return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified"), settings: { history: user.get("history"), historyEnabled: user.get("historyEnabled") } };
 }
