@@ -9,7 +9,7 @@ export enum ErrorCode {
     INVALID_PHOTO, UNKNOWN_SIGNUP,
     INVALID_REQUEST_TYPE, INVALID_VERIFICATION_TOKEN,
     INVALID_RECOVERY_TOKEN, UNKNOWN_EDIT,
-    UNKNOWN_PASSWORD
+    UNKNOWN_PASSWORD, UNKNOWN_HISTORY
 }
 
 const errorList = {
@@ -33,7 +33,8 @@ const errorList = {
     [ErrorCode.INVALID_VERIFICATION_TOKEN]: "Invalid verification token",
     [ErrorCode.INVALID_RECOVERY_TOKEN]: "Invalid recovery token",
     [ErrorCode.UNKNOWN_EDIT]: "Unknown edit error",
-    [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error"
+    [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error",
+    [ErrorCode.UNKNOWN_HISTORY]: "Unknown history error"
 }
 
 interface IServerRes {
