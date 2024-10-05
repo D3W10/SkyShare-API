@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import mime from "mime";
 import Parse from "$lib/parse";
-import { ErrorCode, getRes, getUser } from "$lib/errorManager";
+import { ErrorCode, getRes, getUser, handleError } from "$lib/errorManager";
 import { checkUsername, checkEncodedPassword, checkEmail, checkPhotoSize, checkPhoto } from "$lib/constraintUtils";
 import { sendVerificationEmail } from "$lib/emails";
 
@@ -77,9 +77,7 @@ export async function PUT({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }
 
@@ -109,8 +107,6 @@ export async function DELETE({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }

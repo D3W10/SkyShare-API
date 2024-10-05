@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import Parse from "$lib/parse";
-import { ErrorCode, getRes, getUser } from "$lib/errorManager";
-import { checkUsername, checkEncodedPassword, checkPassword } from "$lib/constraintUtils";
+import { ErrorCode, getRes, getUser, handleError } from "$lib/errorManager";
+import { checkUsername, checkEncodedPassword } from "$lib/constraintUtils";
 
 interface IQuery {
     password: string;
@@ -59,9 +59,7 @@ export async function GET({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }
 
@@ -102,9 +100,7 @@ export async function PUT({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }
 
@@ -146,9 +142,7 @@ export async function DELETE({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }
 

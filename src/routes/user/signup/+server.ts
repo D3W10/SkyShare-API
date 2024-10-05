@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import mime from "mime";
 import Parse from "$lib/parse";
-import { ErrorCode, getRes, getUser } from "$lib/errorManager";
+import { ErrorCode, getRes, getUser, handleError } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkPassword, checkPhotoSize, checkPhoto, checkAvailability } from "$lib/constraintUtils";
 import { sendVerificationEmail } from "$lib/emails.js";
 
@@ -61,8 +61,6 @@ export async function POST({ request }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }

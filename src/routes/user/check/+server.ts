@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { ErrorCode, getRes } from "$lib/errorManager";
+import { ErrorCode, getRes, handleError } from "$lib/errorManager";
 import { checkUsername, checkEmail, checkAvailability } from "$lib/constraintUtils";
 
 interface IQuery {
@@ -24,8 +24,6 @@ export async function GET({ request }) {
         return json(getRes(ErrorCode.SUCCESS, { username: await checkAvailability("username", username), email: await checkAvailability("email", email) }), { status: 200 });
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }

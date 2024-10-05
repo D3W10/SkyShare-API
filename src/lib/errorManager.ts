@@ -70,3 +70,14 @@ export function getRes(error: ErrorCode, value?: any): IServerRes {
 export function getUser(user: Parse.User<Parse.Attributes>): IUserData {
     return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified"), settings: { history: user.get("history"), historyEnabled: user.get("historyEnabled") } };
 }
+
+export function handleError(error: unknown): [IServerRes, { status: number }] {
+    if (error instanceof SyntaxError && error.stack && error.stack.split(/\n/g)[1].includes("JSON.parse")) {
+        return [getRes(ErrorCode.MISSING_PARAMETER), { status: 400 }];
+    }
+    else {
+        console.error(error);
+
+        return [getRes(ErrorCode.SERVER_ERROR), { status: 500 }];
+    }
+}

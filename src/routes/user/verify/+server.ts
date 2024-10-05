@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import Parse from "$lib/parse";
-import { ErrorCode, getRes } from "$lib/errorManager";
+import { ErrorCode, getRes, handleError } from "$lib/errorManager";
 import { checkEmail } from "$lib/constraintUtils";
 
 interface IBody {
@@ -32,8 +32,6 @@ export async function POST({ request }) {
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }

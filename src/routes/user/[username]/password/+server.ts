@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import Parse from "$lib/parse";
-import { ErrorCode, getRes, getUser } from "$lib/errorManager";
+import { ErrorCode, getRes, getUser, handleError } from "$lib/errorManager";
 import { checkUsername, checkEncodedPassword, checkPassword } from "$lib/constraintUtils";
 
 interface IBody {
@@ -46,8 +46,6 @@ export async function PUT({ request, params }) {
         }
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }

@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import keygen from "keygen";
 import Parse from "$lib/parse";
 import nodemailer from "$lib/nodemailer";
-import { ErrorCode, getRes } from "$lib/errorManager";
+import { ErrorCode, getRes, handleError } from "$lib/errorManager";
 import { checkEmail } from "$lib/constraintUtils";
 import { getEmail, sendVerificationEmail } from "$lib/emails";
 
@@ -48,8 +48,6 @@ export async function POST({ request }) {
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });
     }
     catch (error) {
-        console.error(error);
-
-        return json(getRes(ErrorCode.SERVER_ERROR), { status: 500 });
+        return json(...handleError(error));
     }
 }
