@@ -8,11 +8,13 @@ interface IBody {
         size: number;
     }[];
     offer: RTCSessionDescriptionInit;
+    message: string;
+    from: string;
 }
 
 export async function POST({ request }) {
     try {
-        const { files, offer } = await request.json() as IBody;
+        const { files, offer, message, from } = await request.json() as IBody;
 
         if (!files || !offer || files.length == 0 || files.some(file => !file.name || !file.size))
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
@@ -29,6 +31,8 @@ export async function POST({ request }) {
         await db.collection("channels").doc(transferCode).set({
             files,
             offer,
+            message: message || "",
+            from: from || "",
             createdAt: new Date()
         });
 
