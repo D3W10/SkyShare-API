@@ -10,7 +10,8 @@ export enum ErrorCode {
     INVALID_REQUEST_TYPE, INVALID_VERIFICATION_TOKEN,
     INVALID_RECOVERY_TOKEN, UNKNOWN_EDIT,
     UNKNOWN_PASSWORD, UNKNOWN_HISTORY,
-    MESSAGE_TOO_LONG
+    MESSAGE_TOO_LONG, INVALID_CODE,
+    UNEXISTENT_CODE
 }
 
 const errorList = {
@@ -36,7 +37,9 @@ const errorList = {
     [ErrorCode.UNKNOWN_EDIT]: "Unknown edit error",
     [ErrorCode.UNKNOWN_PASSWORD]: "Unknown password error",
     [ErrorCode.UNKNOWN_HISTORY]: "Unknown history error",
-    [ErrorCode.MESSAGE_TOO_LONG]: "Message too long"
+    [ErrorCode.MESSAGE_TOO_LONG]: "Message too long",
+    [ErrorCode.INVALID_CODE]: "Invalid code",
+    [ErrorCode.UNEXISTENT_CODE]: "No transfer with the provided code"
 };
 
 interface IServerRes {
