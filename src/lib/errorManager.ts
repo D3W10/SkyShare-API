@@ -52,17 +52,9 @@ interface IUserData {
     createdAt: Date;
     emailVerified: boolean;
     settings: {
-        history: IHistoryEntry[];
         historyEnabled: boolean;
+        showInfo: boolean;
     };
-}
-
-interface IHistoryEntry {
-    code: string;
-    size: number;
-    secondary: string;
-    type: 0 | 1;
-    date: Date;
 }
 
 export function getRes(error: ErrorCode, value?: any): IServerRes {
@@ -70,7 +62,7 @@ export function getRes(error: ErrorCode, value?: any): IServerRes {
 }
 
 export function getUser(user: Parse.User<Parse.Attributes>): IUserData {
-    return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified"), settings: { history: user.get("history"), historyEnabled: user.get("historyEnabled") } };
+    return { username: user.getUsername()!, email: user.getEmail()!, photo: user.get("photo")?.url(), createdAt: user.createdAt, emailVerified: user.get("emailVerified"), settings: { historyEnabled: user.get("historyEnabled"), showInfo: user.get("showInfo") } };
 }
 
 export function handleError(error: unknown): [IServerRes, { status: number }] {

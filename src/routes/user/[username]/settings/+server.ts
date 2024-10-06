@@ -6,16 +6,17 @@ import { checkUsername } from "$lib/constraintUtils";
 interface IBody {
     password: string;
     historyEnabled?: boolean;
+    showInfo?: boolean;
 }
 
 export async function PUT({ request, params }) {
     try {
         const { username } = params;
-        const { password, historyEnabled } = await request.json() as IBody;
+        const { password, historyEnabled, showInfo } = await request.json() as IBody;
 
         if (!password)
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
-        else if (historyEnabled === undefined)
+        else if (historyEnabled === undefined && showInfo === undefined)
             return json(getRes(ErrorCode.NO_PARAMETERS), { status: 400 });
         else if (!checkUsername(username))
             return json(getRes(ErrorCode.INVALID_USERNAME), { status: 400 });
@@ -33,6 +34,8 @@ export async function PUT({ request, params }) {
             user.set("historyEnabled", historyEnabled);
             user.set("history", []);
         }
+        if (showInfo !== undefined)
+            user.set("showInfo", showInfo);
 
         try {
             let newUser: Parse.User = await user.save(null, { useMasterKey: true });
