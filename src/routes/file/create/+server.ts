@@ -18,6 +18,8 @@ export async function POST({ request }) {
 
         if (!files || !offer || files.length == 0 || files.some(file => !file.name || !file.size))
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
+        else if (message.length > 255)
+            return json(getRes(ErrorCode.MESSAGE_TOO_LONG), { status: 400 });
 
         let transferCode;
         const query = await db.collection("channels").get();
