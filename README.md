@@ -35,12 +35,14 @@
 
 SkyShare API is the interface that provides services that the SkyShare products rely on to work properly. This includes all account related options and the file sharing service.
 
-This project consists in three different subprojects:
+This project consists in four different subprojects:
 > 🖥️&emsp;SkyShare [Desktop App](https://github.com/D3W10/SkyShare)
 >
 > 🔌&emsp;SkyShare [API](https://github.com/D3W10/SkyShare-API)
 >
 > 🌐&emsp;SkyShare [Website](https://github.com/D3W10/SkyShare-Website)
+>
+> ✉️&emsp;SkyShare [Mail](https://github.com/D3W10/SkyShare-Mail)
 
 <br />
 
