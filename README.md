@@ -42,7 +42,7 @@ This project consists in four different subprojects:
 >
 > 🌐&emsp;SkyShare [Website](https://github.com/D3W10/SkyShare-Website)
 >
-> ✉️&emsp;SkyShare [Mail](https://github.com/D3W10/SkyShare-Mail)
+> 📩&emsp;SkyShare [Mail](https://github.com/D3W10/SkyShare-Mail)
 
 <br />
 
