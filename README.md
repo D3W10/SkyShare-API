@@ -76,7 +76,7 @@ In order to run the api, you will need the following tools:
     git clone https://github.com/D3W10/SkyShare-API.git
     ```
 2. Open the project folder using your prefered code editor (ex: VS Code)
-3. Install the required dependencies on both the backend and frontend
+3. Install the required dependencies
     ```sh
     npm i
     ```
