@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { json } from "@sveltejs/kit";
 import { db } from "$lib/firebase.js";
 import { ErrorCode, getRes, handleError } from "$lib/errorManager";
@@ -14,6 +15,7 @@ export async function POST({ request }) {
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
 
         let transferCode;
+        const token = crypto.randomUUID();
         const query = await db.collection("channels").get();
         const currentChannels = query.docs.map(doc => doc.id);
 
@@ -25,7 +27,9 @@ export async function POST({ request }) {
             createdAt: new Date()
         });
 
-        return json(getRes(ErrorCode.SUCCESS, { code: transferCode }), { status: 200 });
+        await db.collection("tokens").doc(transferCode).set({ token });
+
+        return json(getRes(ErrorCode.SUCCESS, { code: transferCode, token }), { status: 200 });
     }
     catch (error) {
         return json(...handleError(error));
