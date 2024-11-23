@@ -27,7 +27,7 @@ export async function POST({ request }) {
             createdAt: new Date()
         });
 
-        await db.collection("tokens").doc(transferCode).set({ token });
+        await db.collection(`channels/${transferCode}/private`).doc("token").set({ token });
 
         return json(getRes(ErrorCode.SUCCESS, { code: transferCode, token }), { status: 200 });
     }

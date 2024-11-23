@@ -23,7 +23,7 @@ export async function POST({ request, params }) {
         if (!transferDoc.exists)
             return json(getRes(ErrorCode.UNEXISTENT_CODE), { status: 400 });
 
-        const tokenDoc = await db.collection("tokens").doc(token).get();
+        const tokenDoc = await db.collection(`channels/${code}/private`).doc("token").get();
         if (!tokenDoc.exists || tokenDoc.data()?.token !== token)
             return json(getRes(ErrorCode.FORBIDDEN), { status: 403 });
 

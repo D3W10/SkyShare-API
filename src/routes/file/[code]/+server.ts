@@ -26,7 +26,7 @@ export async function POST({ request, params }) {
 
         transferDoc.ref.set({ answer }, { merge: true });
 
-        const tokenDoc = await db.collection("tokens").doc(code).get();
+        const tokenDoc = await db.collection(`channels/${code}/private`).doc("token").get();
 
         return json(getRes(ErrorCode.SUCCESS, { token: tokenDoc.data()?.token }), { status: 200 });
     }
