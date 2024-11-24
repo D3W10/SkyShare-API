@@ -9,10 +9,13 @@ export async function GET() {
                     urls: "stun:stun.l.google.com:19302"
                 },
                 {
-                    urls: "turn:turn.anyfirewall.com:443?transport=tcp",
-                    username: "webrtc",
-                    credential: "webrtc",
+                    urls: "stun:freestun.net:3479"
                 },
+                {
+                    urls: "turn:freestun.net:3479",
+                    username: "free",
+                    credential: "free",
+                }
             ]
         };
 
