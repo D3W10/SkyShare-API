@@ -4,19 +4,25 @@ import { ErrorCode, getRes, handleError } from "$lib/errorManager";
 
 interface IBody {
     token: string;
-    candidate: RTCIceCandidateInit;
+    candidates: IceCandidate[];
+}
+
+interface IceCandidate {
+    candidate: string;
+    sdpMid: string | null;
+    sdpMLineIndex: number | null;
 }
 
 export async function POST({ request, params }) {
     try {
         const { code } = params;
-        const { candidate, token } = await request.json() as IBody;
+        const { candidates, token } = await request.json() as IBody;
 
-        if (!code || !candidate || !token)
+        if (!code || !candidates || !token)
             return json(getRes(ErrorCode.MISSING_PARAMETER), { status: 400 });
         else if (!/^\d{6}$/.test(code))
             return json(getRes(ErrorCode.INVALID_CODE), { status: 400 });
-        else if (!candidate.candidate || !candidate.sdpMid || !candidate.sdpMLineIndex)
+        else if (!Array.isArray(candidates) || !candidates.every(c => typeof c.candidate === "string" && (c.sdpMid === null || typeof c.sdpMid === "string") && (c.sdpMLineIndex === null || typeof c.sdpMLineIndex === "number")))
             return json(getRes(ErrorCode.INVALID_ICE), { status: 400 });
 
         const transferDoc = await db.collection("channels").doc(code).get();
@@ -29,11 +35,13 @@ export async function POST({ request, params }) {
 
         const iceCandidatesCol = db.collection(`channels/${code}/iceCandidates`);
 
-        await iceCandidatesCol.add({ candidate: {
-            candidate: candidate.candidate,
-            sdpMid: candidate.sdpMid,
-            sdpMLineIndex: candidate.sdpMLineIndex,
-        }});
+        candidates.forEach(async candidate =>
+            await iceCandidatesCol.add({ candidate: {
+                candidate: candidate.candidate,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex,
+            }})
+        );
 
         return json(getRes(ErrorCode.SUCCESS), { status: 200 });
     }
