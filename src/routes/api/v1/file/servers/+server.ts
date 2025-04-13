@@ -6,7 +6,7 @@ export async function GET() {
         const servers: RTCConfiguration = {
             iceServers: [
                 {
-                    urls: "stun:stun.l.google.com:19302"
+                    urls: "stun:20.86.131.181:19302"
                 },
                 {
                     urls: "stun:freestun.net:3479"
