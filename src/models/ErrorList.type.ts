@@ -3,4 +3,6 @@ export type ErrorList =
     "invalidData" |
     "unableToGenerateCode" |
     "missingData" |
+    "timeoutReached" |
+    "senderEnded" |
     "unknownError";

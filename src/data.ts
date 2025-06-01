@@ -8,7 +8,7 @@ const client = new Client({
 await client.connect();
 
 function createTransfer(code: string, offer: RTCSessionDescriptionInit) {
-    client.query("INSERT INTO transfer (code, offer, created_at) VALUES ($1, $2, NOW())", [code, offer]);
+    client.query("INSERT INTO transfer (code, offer, timeout_start, created_at) VALUES ($1, $2, NOW(), NOW())", [code, offer]);
 }
 
 async function hasTransfer(code: string): Promise<boolean> {
@@ -33,6 +33,14 @@ function setAnswer(code: string, answer: RTCSessionDescriptionInit) {
     client.query("UPDATE transfer SET answer = $1 WHERE code = $2", [answer, code]);
 }
 
+function removeAnswer(code: string) {
+    client.query("UPDATE transfer SET answer = NULL AND timeout_start = NOW() WHERE code = $1", [code]);
+}
+
+function removeTransfer(code: string) {
+    client.query("DELETE FROM transfer WHERE code = $1", [code]);
+}   
+
 function subscribe(code: string, listener: (data: { [key: string]: any }) => unknown, from: Peers) {
     const runner = (m: Notification) => {
         if (!m.payload) return;
@@ -42,12 +50,14 @@ function subscribe(code: string, listener: (data: { [key: string]: any }) => unk
         if (m.channel === code && to === from)
             listener(data ?? {});
     }
-    
+
     client.query(`LISTEN "${code}"`);
     client.on("notification", runner);
 
     return () => {
-        client.query(`UNLISTEN "${code}"`);
+        if (from === "sender")
+            client.query(`UNLISTEN "${code}"`);
+
         client.off("notification", runner);
     };
 }
@@ -61,6 +71,8 @@ export default {
     hasTransfer,
     obtainAnswer,
     setAnswer,
+    removeAnswer,
+    removeTransfer,
     subscribe,
     notify
 }

@@ -39,10 +39,9 @@ async function generateUniqueCode() {
 }
 
 function createTransfer(socket: WebSocket) {
-    let stage = 0, code: string | undefined, subscription: () => unknown | undefined;
+    let stage = 0, code: string | undefined, timeout: NodeJS.Timeout, subscription: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
-        let timeout: NodeJS.Timeout;
         const { type, data } = parseMsg<{ offer?: RTCSessionDescriptionInit, ice?: RTCIceCandidate }>(message.toString());
 
         if (type === "offer" && stage === 0) {
@@ -56,15 +55,13 @@ function createTransfer(socket: WebSocket) {
             dataLayer.createTransfer(code, offer);
             reply("code", { code, timeout: TIMEOUT });
 
-            timeout = setTimeout(() => {
-                console.log(`Timeout reached for code ${code}, closing LISTEN`);
-                close("timeout", undefined, "unknownError");
-            }, TIMEOUT);
+            const timeoutClose = () => close("timeout", undefined, "timeoutReached");
+            timeout = setTimeout(timeoutClose, TIMEOUT);
 
             subscription = dataLayer.subscribe(code, async d => {
                 if (!code) return;
 
-                if (stage === 1) {
+                if (d.type === "answer" && stage === 1) {
                     stage++;
                     clearTimeout(timeout);
 
@@ -72,18 +69,32 @@ function createTransfer(socket: WebSocket) {
                     if (answer)
                         reply("answer", { answer });
                 }
-                else if (stage === 2 && d.ice)
+                else if (d.type === "ice" && stage === 2)
                     reply("ice", { ice: d.ice });
+                else if (d.type === "disconnect" && stage === 2) {
+                    stage--;
+                    timeout = setTimeout(timeoutClose, TIMEOUT);
+                    reply("disconnect");
+                }
             }, "sender");
         }
         else if (type === "ice" && stage === 2) {
             if (!code) return;
 
-            dataLayer.notify(code, "receiver", { ice: data.ice });
+            dataLayer.notify(code, "receiver", { type: "ice", ice: data.ice });
         }
     }, socket);
 
-    socket.on("close", () => subscription?.());
+    socket.on("close", () => {
+        if (code) {
+            dataLayer.removeTransfer(code);
+            dataLayer.notify(code, "receiver", { type: "end" });
+        }
+        if (timeout)
+            clearTimeout(timeout);
+
+        subscription?.();
+    });
 }
 
 function checkTransfer(request: FastifyRequest, rep: FastifyReply) {
@@ -108,18 +119,27 @@ function answerTransfer(socket: WebSocket, request: FastifyRequest) {
 
             stage++;
             dataLayer.setAnswer(code, answer);
-            dataLayer.notify(code, "sender");
+            dataLayer.notify(code, "sender", { type: "answer" });
 
             subscription = dataLayer.subscribe(code, async d => {
-                if (stage === 1 && d.ice)
+                if (d.type === "ice" && stage === 1)
                     reply("ice", { ice: d.ice });
+                else if (d.type === "end")
+                    close("end", undefined, "senderEnded");
             }, "receiver");
         }
         else if (type === "ice" && stage === 1)
-            dataLayer.notify(code, "sender", { ice: data.ice });
+            dataLayer.notify(code, "sender", { type: "ice", ice: data.ice });
     }, socket);
 
-    socket.on("close", () => subscription?.());
+    socket.on("close", () => {
+        if (code) {
+            dataLayer.removeAnswer(code);
+            dataLayer.notify(code, "sender", { type: "disconnect" });
+        }
+
+        subscription?.();
+    });
 }
 
 function getCredentials(request: FastifyRequest, reply: FastifyReply) {

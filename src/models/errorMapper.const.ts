@@ -6,5 +6,7 @@ export const errorMapper: Record<ErrorList, ErrorCause> = {
     invalidData: "userError",
     unableToGenerateCode: "serverError",
     missingData: "userError",
+    timeoutReached: "userError",
+    senderEnded: "userError",
     unknownError: "serverError"
 };
