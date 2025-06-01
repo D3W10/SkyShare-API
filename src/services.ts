@@ -66,6 +66,7 @@ function createTransfer(socket: WebSocket) {
 
                 if (stage === 1) {
                     stage++;
+                    clearTimeout(timeout);
 
                     const answer = await dataLayer.obtainAnswer(code);
                     if (answer)
