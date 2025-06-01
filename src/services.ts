@@ -3,9 +3,12 @@ import { handleHttp, handleWs } from "./handleErrors";
 import ApiError from "./models/ApiError.class";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
+import crypto from 'crypto';
 
 const TIMEOUT = 600000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const secret = process.env.COTURN_SECRET;
+const ttl = process.env.COTURN_TTL;
 
 function parseMsg<T = any>(msg: string) {
     let json: { type: string, data: T };
@@ -143,7 +146,14 @@ function answerTransfer(socket: WebSocket, request: FastifyRequest) {
 }
 
 function getCredentials(request: FastifyRequest, reply: FastifyReply) {
-    reply.send({ username: "danielnunes", password: "123456" });
+    const unixTime = Math.floor(Date.now() / 1000) + ttl;
+    const username = unixTime.toString();
+
+    const hmac = crypto.createHmac('sha1', secret);
+    hmac.update(username);
+    const password = hmac.digest('base64');
+
+    reply.send({ username, password });
 }
 
 export default {
