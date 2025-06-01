@@ -1,14 +1,12 @@
+import crypto from "crypto";
 import dataLayer from "./data";
 import { handleHttp, handleWs } from "./handleErrors";
 import ApiError from "./models/ApiError.class";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
-import crypto from 'crypto';
 
 const TIMEOUT = 600000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-const secret = process.env.COTURN_SECRET;
-const ttl = Number(process.env.COTURN_TTL);
 
 function parseMsg<T = any>(msg: string) {
     let json: { type: string, data: T };
@@ -145,15 +143,18 @@ function answerTransfer(socket: WebSocket, request: FastifyRequest) {
     });
 }
 
-function getCredentials(request: FastifyRequest, reply: FastifyReply) {
-    const unixTime = Math.floor(Date.now() / 1000) + ttl;
-    const username = unixTime.toString();
+function getCredentials(request: FastifyRequest, rep: FastifyReply) {
+    handleHttp(async reply => {
+        const unixTime = Math.floor(Date.now() / 1000) + +(process.env.COTURN_TTL ?? "60");
+        const username = unixTime.toString();
+        const hmac = crypto.createHmac("sha1", process.env.COTURN_SECRET ?? "");
+        hmac.update(username);
 
-    const hmac = crypto.createHmac('sha1', secret);
-    hmac.update(username);
-    const password = hmac.digest('base64');
-
-    reply.send({ username, password });
+        reply("success", {
+            username,
+            password: hmac.digest("base64")
+        });
+    }, rep);
 }
 
 export default {
