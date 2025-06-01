@@ -1,43 +1,38 @@
 {
     "name": "skyshare-api",
     "productName": "SkyShare API",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "description": "The API that serves SkyShare",
-    "author": {
-        "name": "Daniel Nunes",
-        "url": "https://d3w10.netlify.app"
-    },
+    "contributors": [
+        {
+            "name": "Daniel Nunes",
+            "url": "https://d3w10.netlify.app"
+        },
+        {
+            "name": "Mihail Arcus"
+        }
+    ],
     "scripts": {
-        "dev": "vite dev",
-        "build": "vite build",
-        "preview": "vite preview"
+        "start": "bun run index.ts",
+        "hot": "bun run --hot index.ts"
     },
+    "type": "module",
     "repository": {
         "type": "git",
         "url": "https://github.com/D3W10/SkyShare-API"
     },
     "license": "MPL-2.0",
-    "type": "module",
+    "homepage": "http://20.86.131.181/",
     "dependencies": {
-        "@sveltejs/adapter-node": "^5.2.12",
-        "@types/ws": "^8.18.1",
-        "firebase-admin": "^13.2.0",
-        "keygen": "^0.4.0",
-        "mime": "^4.0.7",
-        "nodemailer": "^6.10.1",
-        "parse": "^6.1.1",
-        "pg": "^8.15.1",
-        "vite": "^6.2.6",
-        "ws": "^8.18.1"
+        "@fastify/websocket": "^11.1.0",
+        "fastify": "^5.3.3",
+        "pg": "^8.16.0"
     },
     "devDependencies": {
-        "@sveltejs/kit": "^2.20.5",
-        "@types/nodemailer": "^6.4.17",
-        "@types/parse": "^3.0.9",
-        "@types/pg": "^8.11.13",
-        "svelte": "^5.26.2",
-        "svelte-check": "^4.1.6",
-        "tslib": "^2.8.1",
+        "@types/pg": "^8.15.2",
+        "@types/ws": "^8.18.1"
+    },
+    "peerDependencies": {
         "typescript": "^5.8.3"
     }
 }
