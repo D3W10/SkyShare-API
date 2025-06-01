@@ -8,7 +8,7 @@ import crypto from 'crypto';
 const TIMEOUT = 600000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 const secret = process.env.COTURN_SECRET;
-const ttl = process.env.COTURN_TTL;
+const ttl = Number(process.env.COTURN_TTL);
 
 function parseMsg<T = any>(msg: string) {
     let json: { type: string, data: T };
