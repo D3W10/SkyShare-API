@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import fyWebSocket from "@fastify/websocket";
-import services from "./src/services.ts";
+import services from "./src/services";
 
 const fastify = Fastify();
 
@@ -13,7 +13,7 @@ fastify.register(async fastify => {
     fastify.get("/credentials", services.getCredentials);
 });
 
-fastify.listen({ port: 3000, host: "0.0.0.0" }, err => {
+fastify.listen({ port: 8020, host: "0.0.0.0" }, err => {
     if (err)
         fastify.log.error(err);
 });
