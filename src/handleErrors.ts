@@ -34,7 +34,7 @@ export async function handleHttp(func: (reply: (code: ErrorList, data?: any) => 
         const httpCode = apiError ? httpCodeMap[errorMapper[err.code]] : 500;
 
         console.error(err);
-        reply.code(httpCode).send({ code: apiError ? err.code : "unknownError" } satisfies ApiReply);
+        reply.code(httpCode).send({ code: apiError ? err.code : "unknown" } satisfies ApiReply);
     }
 }
 
@@ -52,7 +52,7 @@ export async function handleWs(func: (message: RawData, reply: (type: string, da
             const wsCode = apiError ? wsCodeMap[errorMapper[err.code]] : 1003;
 
             console.error(err);
-            socket.close(wsCode, JSON.stringify({ code: apiError ? err.code : "unknownError", type: "error" } satisfies WsApiReply));
+            socket.close(wsCode, JSON.stringify({ code: apiError ? err.code : "unknown", type: "error" } satisfies WsApiReply));
         }
     });
 }
