@@ -26,7 +26,10 @@ const wsCodeMap: Record<ErrorCause, number> = {
 export async function handleHttp(func: (reply: (code: ErrorList, data?: any) => unknown) => unknown, reply: FastifyReply) {
     try {
         await func(
-            (code, data) => reply.send({ code, data } satisfies ApiReply)
+            (code, data) => {
+                reply.header("Access-Control-Allow-Origin", "*");
+                reply.send({ code, data } satisfies ApiReply)
+            }
         );
     }
     catch (err) {
