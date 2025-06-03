@@ -8,5 +8,6 @@ export const errorMapper: Record<ErrorList, ErrorCause> = {
     missingData: "userError",
     timeoutReached: "userError",
     senderEnded: "userError",
+    miscommunication: "userError",
     unknown: "serverError"
 };

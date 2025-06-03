@@ -8,7 +8,7 @@ import type { WebSocket } from "@fastify/websocket";
 const TIMEOUT = 600000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-function parseMsg<T = any>(msg: string) {
+function parseMsg<T = { [key: string]: any }>(msg: string) {
     let json: { type: string, data: T };
 
     try {
@@ -18,8 +18,10 @@ function parseMsg<T = any>(msg: string) {
         throw new ApiError("invalidData");
     }
 
-    if (!json.type || !json.data)
+    if (!json.type)
         throw new ApiError("invalidData");
+
+    json.data ??= {} as T;
 
     return json;
 }
@@ -66,7 +68,7 @@ function createTransfer(socket: WebSocket) {
                     stage++;
                     clearTimeout(timeout);
 
-                    const answer = await dataLayer.obtainAnswer(code);
+                    const answer = await dataLayer.getAnswer(code);
                     if (answer)
                         reply("answer", { answer });
                 }
@@ -84,6 +86,8 @@ function createTransfer(socket: WebSocket) {
 
             dataLayer.notify(code, "receiver", { type: "ice", ice: data.ice });
         }
+        else
+            close("error", undefined, "miscommunication");
     }, socket);
 
     socket.on("close", () => {
@@ -106,14 +110,20 @@ function checkTransfer(request: FastifyRequest, rep: FastifyReply) {
     }, rep);
 }
 
-function answerTransfer(socket: WebSocket, request: FastifyRequest) {
-    let stage = 0, code: string | undefined, subscription: () => unknown | undefined;
+async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
+    let stage = 0, code = (request.params as { code: string }).code, subscription: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
-        code = (request.params as { code: string }).code;
         const { type, data } = parseMsg<{ answer?: RTCSessionDescriptionInit, ice?: RTCIceCandidate }>(message.toString());
 
-        if (type === "answer" && stage === 0) {
+        if (type === "offer" && stage === 0) {
+            stage++;
+
+            const offer = await dataLayer.getOffer(code);
+            if (offer)
+                reply("offer", { offer });
+        }
+        else if (type === "answer" && stage === 1) {
             const answer = data.answer;
             if (!answer)
                 return close("error", undefined, "missingData");
@@ -123,14 +133,16 @@ function answerTransfer(socket: WebSocket, request: FastifyRequest) {
             dataLayer.notify(code, "sender", { type: "answer" });
 
             subscription = dataLayer.subscribe(code, async d => {
-                if (d.type === "ice" && stage === 1)
+                if (d.type === "ice" && stage === 2)
                     reply("ice", { ice: d.ice });
                 else if (d.type === "end")
                     close("end", undefined, "senderEnded");
             }, "receiver");
         }
-        else if (type === "ice" && stage === 1)
+        else if (type === "ice" && stage === 2)
             dataLayer.notify(code, "sender", { type: "ice", ice: data.ice });
+        else
+            close("error", undefined, "miscommunication");
     }, socket);
 
     socket.on("close", () => {

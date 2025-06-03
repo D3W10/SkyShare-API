@@ -20,7 +20,7 @@ async function hasTransfer(code: string): Promise<boolean> {
     return query.rows.length > 0;
 }
 
-async function obtainAnswer(code: string) {
+async function getAnswer(code: string) {
     const query = await client.query<{ answer: RTCSessionDescriptionInit | null }>(
         "SELECT answer FROM transfer WHERE code = $1",
         [code]
@@ -29,12 +29,21 @@ async function obtainAnswer(code: string) {
     return query.rows.length > 0 ? query.rows[0].answer : null;
 }
 
+async function getOffer(code: string) {
+    const query = await client.query<{ offer: RTCSessionDescriptionInit | null }>(
+        "SELECT offer FROM transfer WHERE code = $1",
+        [code]
+    );
+
+    return query.rows.length > 0 ? query.rows[0].offer : null;
+}
+
 function setAnswer(code: string, answer: RTCSessionDescriptionInit) {
     client.query("UPDATE transfer SET answer = $1 WHERE code = $2", [answer, code]);
 }
 
 function removeAnswer(code: string) {
-    client.query("UPDATE transfer SET answer = NULL AND timeout_start = NOW() WHERE code = $1", [code]);
+    client.query("UPDATE transfer SET answer = NULL, timeout_start = NOW() WHERE code = $1", [code]);
 }
 
 function removeTransfer(code: string) {
@@ -69,7 +78,8 @@ function notify(code: string, to: Peers, data?: { [key: string]: any }) {
 export default {
     createTransfer,
     hasTransfer,
-    obtainAnswer,
+    getAnswer,
+    getOffer,
     setAnswer,
     removeAnswer,
     removeTransfer,

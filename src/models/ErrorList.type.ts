@@ -5,4 +5,5 @@ export type ErrorList =
     "missingData" |
     "timeoutReached" |
     "senderEnded" |
+    "miscommunication" |
     "unknown";
