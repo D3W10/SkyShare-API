@@ -34,6 +34,7 @@ export async function handleHttp(func: (reply: (code: ErrorList, data?: any) => 
         const httpCode = apiError ? httpCodeMap[errorMapper[err.code]] : 500;
 
         console.error(err);
+        reply.reader("Access-Control-Allow-Origin", "*");
         reply.code(httpCode).send({ code: apiError ? err.code : "unknown" } satisfies ApiReply);
     }
 }
