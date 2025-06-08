@@ -46,6 +46,10 @@ function removeAnswer(code: string) {
     client.query("UPDATE transfer SET answer = NULL, timeout_start = NOW() WHERE code = $1", [code]);
 }
 
+function setOffer(code: string, offer: RTCSessionDescriptionInit) {
+    client.query("UPDATE transfer SET offer = $1 WHERE code = $2", [offer, code]);
+}
+
 function removeTransfer(code: string) {
     client.query("DELETE FROM transfer WHERE code = $1", [code]);
 }   
@@ -82,6 +86,7 @@ export default {
     getOffer,
     setAnswer,
     removeAnswer,
+    setOffer,
     removeTransfer,
     subscribe,
     notify

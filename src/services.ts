@@ -42,7 +42,7 @@ async function generateUniqueCode() {
 }
 
 function createTransfer(socket: WebSocket) {
-    let stage = 0, code: string | undefined, timeout: NodeJS.Timeout, subscription: () => unknown | undefined;
+    let stage = 0, code: string | undefined, timeout: NodeJS.Timeout, unsubscribe: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
         const { type, data } = parseMsg<{ offer?: RTCSessionDescriptionInit, ice?: RTCIceCandidate }>(message.toString());
@@ -61,7 +61,7 @@ function createTransfer(socket: WebSocket) {
             const timeoutClose = () => close("timeout", undefined, "timeoutReached");
             timeout = setTimeout(timeoutClose, TIMEOUT);
 
-            subscription = dataLayer.subscribe(code, async d => {
+            unsubscribe = dataLayer.subscribe(code, async d => {
                 if (!code) return;
 
                 if (d.type === "answer" && stage === 1) {
@@ -86,6 +86,11 @@ function createTransfer(socket: WebSocket) {
 
             dataLayer.notify(code, "receiver", { type: "ice", ice: data.ice });
         }
+        else if (type === "offer" && stage === 1) {
+            if (!code || !data.offer) return;
+
+            dataLayer.setOffer(code, data.offer);
+        }
         else
             close("error", undefined, "miscommunication");
     }, socket);
@@ -98,7 +103,7 @@ function createTransfer(socket: WebSocket) {
         if (timeout)
             clearTimeout(timeout);
 
-        subscription?.();
+        unsubscribe?.();
     });
 }
 
@@ -111,7 +116,7 @@ function checkTransfer(request: FastifyRequest, rep: FastifyReply) {
 }
 
 async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
-    let stage = 0, code = (request.params as { code: string }).code, subscription: () => unknown | undefined;
+    let stage = 0, code = (request.params as { code: string }).code, unsubscribe: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
         const { type, data } = parseMsg<{ answer?: RTCSessionDescriptionInit, ice?: RTCIceCandidate }>(message.toString());
@@ -132,7 +137,7 @@ async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
             dataLayer.setAnswer(code, answer);
             dataLayer.notify(code, "sender", { type: "answer" });
 
-            subscription = dataLayer.subscribe(code, async d => {
+            unsubscribe = dataLayer.subscribe(code, async d => {
                 if (d.type === "ice" && stage === 2)
                     reply("ice", { ice: d.ice });
                 else if (d.type === "end")
@@ -151,7 +156,7 @@ async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
             dataLayer.notify(code, "sender", { type: "disconnect" });
         }
 
-        subscription?.();
+        unsubscribe?.();
     });
 }
 
