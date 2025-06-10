@@ -14,23 +14,27 @@ interface WsApiReply extends ApiReply {
 const httpCodeMap: Record<ErrorCause, number> = {
     success: 200,
     userError: 400,
+    forbiddenError: 403,
     serverError: 500
 };
 
 const wsCodeMap: Record<ErrorCause, number> = {
     success: 1000,
     userError: 1003,
+    forbiddenError: 1003,
     serverError: 1003
 };
 
-export async function handleHttp(func: (reply: (code: ErrorList, data?: any) => unknown) => unknown, reply: FastifyReply) {
+export async function handleHttp(func: () => Promise<{ [key: string]: any } | string>, reply: FastifyReply) {
     try {
-        await func(
-            (code, data) => {
-                reply.header("Access-Control-Allow-Origin", "*");
-                reply.send({ code, data } satisfies ApiReply)
-            }
-        );
+        const data = await func();
+
+        reply.header("Access-Control-Allow-Origin", "*");
+
+        if (typeof data !== "string")
+            reply.send({ code: "success", data } satisfies ApiReply);
+        else
+            reply.redirect(data);
     }
     catch (err) {
         const apiError = err instanceof ApiError;
@@ -39,6 +43,9 @@ export async function handleHttp(func: (reply: (code: ErrorList, data?: any) => 
         console.error(err);
         reply.header("Access-Control-Allow-Origin", "*");
         reply.code(httpCode).send({ code: apiError ? err.code : "unknown" } satisfies ApiReply);
+    }
+    finally {
+        return reply;
     }
 }
 

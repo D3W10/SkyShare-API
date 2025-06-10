@@ -41,7 +41,7 @@ async function generateUniqueCode() {
     return code;
 }
 
-function createTransfer(socket: WebSocket) {
+const createTransfer = (socket: WebSocket, request: FastifyRequest) => {
     let stage = 0, code: string | undefined, timeout: NodeJS.Timeout, unsubscribe: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
@@ -105,17 +105,15 @@ function createTransfer(socket: WebSocket) {
 
         unsubscribe?.();
     });
-}
+};
 
-function checkTransfer(request: FastifyRequest, rep: FastifyReply) {
-    handleHttp(async reply => {
-        const { code } = request.params as { code: string };
+const checkTransfer = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
+    const { code } = request.params as { code: string };
 
-        reply("success", { status: await dataLayer.hasTransfer(code) });
-    }, rep);
-}
+    return { status: await dataLayer.hasTransfer(code) };
+}, reply);
 
-async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
+const answerTransfer = (socket: WebSocket, request: FastifyRequest) => {
     let stage = 0, code = (request.params as { code: string }).code, unsubscribe: () => unknown | undefined;
 
     handleWs(async (message, reply, close) => {
@@ -158,25 +156,92 @@ async function answerTransfer(socket: WebSocket, request: FastifyRequest) {
 
         unsubscribe?.();
     });
-}
+};
 
-function getCredentials(request: FastifyRequest, rep: FastifyReply) {
-    handleHttp(async reply => {
-        const unixTime = Math.floor(Date.now() / 1000) + +(process.env.COTURN_TTL ?? "60");
-        const username = unixTime.toString();
-        const hmac = crypto.createHmac("sha1", process.env.COTURN_SECRET ?? "");
-        hmac.update(username);
+const initiateLogin = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => initiateSignin(request, true), reply);
 
-        reply("success", {
-            username,
-            password: hmac.digest("base64")
+const getAccessToken = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
+    const { code, state, error } = request.query as { code: string, state: string, error?: string };
+    const redirectUri = request.session.oauthRedirectUri, display = request.session.oauthDisplay;
+    delete request.session.oauthRedirectUri;
+    delete request.session.oauthDisplay;
+
+    const storedState = request.session.oauthState;
+    if (!state || state !== storedState) {
+        delete request.session.oauthState;
+        throw new ApiError("stateMismatch");
+    }
+
+    delete request.session.oauthState;
+
+    if (error || !code || !redirectUri)
+        throw new ApiError("authenticationFailed");
+
+    const query = new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: process.env.CASDOOR_CLIENT_ID!,
+        client_secret: process.env.CASDOOR_CLIENT_SECRET!,
+        code,
+        redirect_uri: process.env.CASDOOR_REDIRECT_URI!,
+    });
+
+    const tokenRes = await fetch(`${process.env.CASDOOR_ENDPOINT}api/login/oauth/access_token?${query.toString()}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+    }), tokenData = await tokenRes.json() as { access_token: string, refresh_token: string, expires_in: number };
+
+    if (display)
+        return {
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_in: tokenData.expires_in
+        };
+    else {
+        const resQuery = new URLSearchParams({
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_in: tokenData.expires_in.toString()
         });
-    }, rep);
+
+        return redirectUri + "?" + resQuery.toString();
+    }
+}, reply);
+
+const initiateSignup = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => initiateSignin(request, false), reply);
+
+const getCredentials = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
+    const unixTime = Math.floor(Date.now() / 1000) + +(process.env.COTURN_TTL ?? "60");
+    const username = unixTime.toString();
+    const hmac = crypto.createHmac("sha1", process.env.COTURN_SECRET ?? "");
+    hmac.update(username);
+
+    return {
+        username,
+        password: hmac.digest("base64")
+    };
+}, reply);
+
+function initiateSignin(request: FastifyRequest, login: boolean) {
+    const state = crypto.randomBytes(16).toString("hex");
+    const { redirect_uri, display } = request.query as { redirect_uri?: string, display?: string };
+    if (!redirect_uri)
+        throw new ApiError("missingData");
+
+    request.session.oauthState = state;
+    request.session.oauthRedirectUri = redirect_uri;
+    request.session.oauthDisplay = (display ?? false) === "true";
+
+    return `${process.env.CASDOOR_ENDPOINT}${login ? "login" : "signup"}/oauth/authorize?client_id=${process.env.CASDOOR_CLIENT_ID}&response_type=code&redirect_uri=${process.env.CASDOOR_REDIRECT_URI}&scope=openid%20profile%20email&state=${state}`;
 }
 
 export default {
     createTransfer,
     checkTransfer,
     answerTransfer,
+    initiateLogin,
+    getAccessToken,
+    initiateSignup,
     getCredentials
 }

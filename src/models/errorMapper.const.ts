@@ -9,5 +9,7 @@ export const errorMapper: Record<ErrorList, ErrorCause> = {
     timeoutReached: "userError",
     senderEnded: "userError",
     miscommunication: "userError",
+    stateMismatch: "forbiddenError",
+    authenticationFailed: "userError",
     unknown: "serverError"
 };

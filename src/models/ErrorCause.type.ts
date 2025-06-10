@@ -1,1 +1,1 @@
-export type ErrorCause = "success" | "userError" | "serverError";
+export type ErrorCause = "success" | "userError" | "forbiddenError" | "serverError";

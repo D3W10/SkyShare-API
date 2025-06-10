@@ -1,16 +1,31 @@
 import Fastify from "fastify";
-import fyWebSocket from "@fastify/websocket";
+import { fastifyWebsocket } from "@fastify/websocket";
+import { fastifyCookie } from "@fastify/cookie";
+import { fastifySession } from "@fastify/session";
 import services from "./src/services";
 
 const BASE_ROUTE = "/api/v1";
 const fastify = Fastify();
 
-fastify.register(fyWebSocket);
+fastify.register(fastifyWebsocket);
+fastify.register(fastifyCookie);
+fastify.register(fastifySession as any, {
+    secret: process.env.SESSION_SECRET,
+    cookie: {
+        secure: false,
+        httpOnly: true,
+        maxAge: 1000 * 60 * 5,
+        sameSite: "Lax"
+    },
+});
 
 fastify.register(async fastify => {
     fastify.get(BASE_ROUTE + "/transfer/create", { websocket: true }, services.createTransfer);
     fastify.get(BASE_ROUTE + "/transfer/:code/check", services.checkTransfer);
     fastify.get(BASE_ROUTE + "/transfer/:code", { websocket: true }, services.answerTransfer);
+    fastify.get(BASE_ROUTE + "/login", services.initiateLogin);
+    fastify.get(BASE_ROUTE + "/login/finalize", services.getAccessToken);
+    fastify.get(BASE_ROUTE + "/signup", services.initiateSignup);
     fastify.get(BASE_ROUTE + "/credentials", services.getCredentials);
 });
 
@@ -18,3 +33,11 @@ fastify.listen({ port: 8020, host: "0.0.0.0" }, err => {
     if (err)
         fastify.log.error(err);
 });
+
+declare module "fastify" {
+    interface Session {
+        oauthState?: string;
+        oauthRedirectUri?: string;
+        oauthDisplay?: boolean;
+    }
+}

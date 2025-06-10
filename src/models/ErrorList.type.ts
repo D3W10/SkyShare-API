@@ -6,4 +6,6 @@ export type ErrorList =
     "timeoutReached" |
     "senderEnded" |
     "miscommunication" |
+    "stateMismatch" |
+    "authenticationFailed" |
     "unknown";
