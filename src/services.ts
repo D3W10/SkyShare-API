@@ -5,7 +5,7 @@ import ApiError from "./models/ApiError.class";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
 
-const TIMEOUT = 600000;
+const TIMEOUT = 600000, SCOPE = "openid profile email";
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 function parseMsg<T = { [key: string]: any }>(msg: string) {
@@ -160,8 +160,14 @@ const answerTransfer = (socket: WebSocket, request: FastifyRequest) => {
 
 const initiateLogin = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => initiateSignin(request, true), reply);
 
-const getAccessToken = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
-    const { code, state, error } = request.query as { code: string, state: string, error?: string };
+interface AccessTokenQuery {
+    code: string;
+    state: string;
+    error?: string;
+}
+
+const getAccessToken = (request: FastifyRequest<{ Querystring: AccessTokenQuery }>, reply: FastifyReply) => handleHttp(async () => {
+    const { code, state, error } = request.query;
     const redirectUri = request.session.oauthRedirectUri, display = request.session.oauthDisplay;
     delete request.session.oauthRedirectUri;
     delete request.session.oauthDisplay;
@@ -169,20 +175,28 @@ const getAccessToken = (request: FastifyRequest, reply: FastifyReply) => handleH
     const storedState = request.session.oauthState;
     if (!state || state !== storedState) {
         delete request.session.oauthState;
-        throw new ApiError("stateMismatch");
+
+        if (display)
+            throw new ApiError("stateMismatch");
+        else
+            return redirectUri + "?code=stateMismatch";
     }
 
     delete request.session.oauthState;
 
-    if (error || !code || !redirectUri)
-        throw new ApiError("authenticationFailed");
+    if (error || !code || !redirectUri) {
+        if (display)
+            throw new ApiError("authenticationFailed");
+        else
+            return redirectUri + "?code=authenticationFailed";
+    }
 
     const query = new URLSearchParams({
         grant_type: "authorization_code",
         client_id: process.env.CASDOOR_CLIENT_ID!,
         client_secret: process.env.CASDOOR_CLIENT_SECRET!,
         code,
-        redirect_uri: process.env.CASDOOR_REDIRECT_URI!,
+        redirect_uri: process.env.CASDOOR_REDIRECT_URI!
     });
 
     const tokenRes = await fetch(`${process.env.CASDOOR_ENDPOINT}api/login/oauth/access_token?${query.toString()}`, {
@@ -200,6 +214,7 @@ const getAccessToken = (request: FastifyRequest, reply: FastifyReply) => handleH
         };
     else {
         const resQuery = new URLSearchParams({
+            code: "success",
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
             expires_in: tokenData.expires_in.toString()
@@ -210,6 +225,41 @@ const getAccessToken = (request: FastifyRequest, reply: FastifyReply) => handleH
 }, reply);
 
 const initiateSignup = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => initiateSignin(request, false), reply);
+
+interface RefreshTokenBody {
+    refreshToken: string;
+}
+
+const refreshToken = (request: FastifyRequest<{ Body: RefreshTokenBody }>, reply: FastifyReply) => handleHttp(async () => {
+    if (!request.body.refreshToken)
+        throw new ApiError("missingData");
+
+    const query = new URLSearchParams({
+        grant_type: "authorization_code",
+        refresh_token: request.body.refreshToken,
+        scope: SCOPE,
+        client_id: process.env.CASDOOR_CLIENT_ID!,
+        client_secret: process.env.CASDOOR_CLIENT_SECRET!
+    });
+
+    const tokenRes = await fetch(`${process.env.CASDOOR_ENDPOINT}api/login/oauth/refresh_token?${query.toString()}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+    });
+
+    if (tokenRes.status !== 200)
+        throw new ApiError("unableToRefreshToken");
+
+    const tokenData = await tokenRes.json() as { access_token: string, refresh_token: string, expires_in: number };
+
+    return {
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_in: tokenData.expires_in
+    };
+}, reply);
 
 const getCredentials = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
     const unixTime = Math.floor(Date.now() / 1000) + +(process.env.COTURN_TTL ?? "60");
@@ -233,7 +283,15 @@ function initiateSignin(request: FastifyRequest, login: boolean) {
     request.session.oauthRedirectUri = redirect_uri;
     request.session.oauthDisplay = (display ?? false) === "true";
 
-    return `${process.env.CASDOOR_ENDPOINT}${login ? "login" : "signup"}/oauth/authorize?client_id=${process.env.CASDOOR_CLIENT_ID}&response_type=code&redirect_uri=${process.env.CASDOOR_REDIRECT_URI}&scope=openid%20profile%20email&state=${state}`;
+    const resQuery = new URLSearchParams({
+        client_id: process.env.CASDOOR_CLIENT_ID!,
+        response_type: "code",
+        redirect_uri: process.env.CASDOOR_REDIRECT_URI!,
+        scope: SCOPE,
+        state
+    });
+
+    return `${process.env.CASDOOR_ENDPOINT}${login ? "login" : "signup"}/oauth/authorize?${resQuery.toString()}`;
 }
 
 export default {
@@ -243,5 +301,6 @@ export default {
     initiateLogin,
     getAccessToken,
     initiateSignup,
+    refreshToken,
     getCredentials
 }

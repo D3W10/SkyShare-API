@@ -8,4 +8,5 @@ export type ErrorList =
     "miscommunication" |
     "stateMismatch" |
     "authenticationFailed" |
+    "unableToRefreshToken" |
     "unknown";

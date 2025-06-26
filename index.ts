@@ -5,7 +5,7 @@ import { fastifySession } from "@fastify/session";
 import services from "./src/services";
 
 const BASE_ROUTE = "/api/v1";
-const fastify = Fastify();
+const fastify = Fastify({ trustProxy: true });
 
 fastify.register(fastifyWebsocket);
 fastify.register(fastifyCookie);
@@ -26,6 +26,7 @@ fastify.register(async fastify => {
     fastify.get(BASE_ROUTE + "/login", services.initiateLogin);
     fastify.get(BASE_ROUTE + "/login/finalize", services.getAccessToken);
     fastify.get(BASE_ROUTE + "/signup", services.initiateSignup);
+    fastify.get(BASE_ROUTE + "/refresh", services.refreshToken);
     fastify.get(BASE_ROUTE + "/credentials", services.getCredentials);
 });
 
