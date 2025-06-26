@@ -215,14 +215,14 @@ const getAccessToken = (request: FastifyRequest<{ Querystring: AccessTokenQuery 
         return {
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
-            expires_on: payload.exp ?? Date.now()
+            expires_on: payload.exp ? payload.exp * 1000 : Date.now()
         };
     else {
         const resQuery = new URLSearchParams({
             code: "success",
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
-            expires_on: (payload.exp ?? Date.now()).toString()
+            expires_on: (payload.exp ? payload.exp * 1000 : Date.now()).toString()
         });
 
         return redirectUri + "?" + resQuery.toString();
@@ -266,7 +266,7 @@ const refreshToken = (request: FastifyRequest<{ Querystring: RefreshTokenQuery }
     return {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        expires_on: payload.exp ?? Date.now()
+        expires_on: payload.exp ? payload.exp * 1000 : Date.now()
     };
 }, reply);
 
