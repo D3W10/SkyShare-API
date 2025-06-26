@@ -303,6 +303,14 @@ function initiateSignin(request: FastifyRequest, login: boolean) {
     return `${process.env.CASDOOR_ENDPOINT}${login ? "login" : "signup"}/oauth/authorize?${resQuery.toString()}`;
 }
 
+interface GetBasicUserInfoQuery {
+    userId: string;
+}
+
+const getBasicUserInfo = (request: FastifyRequest<{ Querystring: GetBasicUserInfoQuery }>, reply: FastifyReply) => handleHttp(async () => {
+    return await dataLayer.getBasicUserInfo(request.query.userId);
+}, reply);
+
 export default {
     createTransfer,
     checkTransfer,
@@ -311,5 +319,6 @@ export default {
     getAccessToken,
     initiateSignup,
     refreshToken,
-    getCredentials
+    getCredentials,
+    getBasicUserInfo
 }

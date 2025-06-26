@@ -79,6 +79,13 @@ function notify(code: string, to: Peers, data?: { [key: string]: any }) {
     client.query(`NOTIFY "${code}", '${JSON.stringify({ to, data })}'`);
 }
 
+function getBasicUserInfo(userId: string) {
+    return client.query<{ name: string, avatar: string }>(
+        "SELECT name, avatar FROM \"user\" WHERE id = $1",
+        [userId]
+    );
+}
+
 export default {
     createTransfer,
     hasTransfer,
@@ -89,5 +96,6 @@ export default {
     setOffer,
     removeTransfer,
     subscribe,
-    notify
+    notify,
+    getBasicUserInfo
 }
