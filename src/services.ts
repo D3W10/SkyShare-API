@@ -308,7 +308,9 @@ interface GetBasicUserInfoQuery {
 }
 
 const getBasicUserInfo = (request: FastifyRequest<{ Querystring: GetBasicUserInfoQuery }>, reply: FastifyReply) => handleHttp(async () => {
-    return await dataLayer.getBasicUserInfo(request.query.userId);
+    const data = await dataLayer.getBasicUserInfo(request.query.userId);
+
+    return data.rows.length > 0 ? data.rows[0] : {};
 }, reply);
 
 export default {
