@@ -231,17 +231,17 @@ const getAccessToken = (request: FastifyRequest<{ Querystring: AccessTokenQuery 
 
 const initiateSignup = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => initiateSignin(request, false), reply);
 
-interface RefreshTokenBody {
+interface RefreshTokenQuery {
     refreshToken: string;
 }
 
-const refreshToken = (request: FastifyRequest<{ Body: RefreshTokenBody }>, reply: FastifyReply) => handleHttp(async () => {
-    if (!request.body.refreshToken)
+const refreshToken = (request: FastifyRequest<{ Querystring: RefreshTokenQuery }>, reply: FastifyReply) => handleHttp(async () => {
+    if (!request.query.refreshToken)
         throw new ApiError("missingData");
 
     const query = new URLSearchParams({
         grant_type: "authorization_code",
-        refresh_token: request.body.refreshToken,
+        refresh_token: request.query.refreshToken,
         scope: SCOPE,
         client_id: process.env.CASDOOR_CLIENT_ID!,
         client_secret: process.env.CASDOOR_CLIENT_SECRET!
