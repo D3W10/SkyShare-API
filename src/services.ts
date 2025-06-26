@@ -1,9 +1,11 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import dataLayer from "./data";
 import { handleHttp, handleWs } from "./handleErrors";
 import ApiError from "./models/ApiError.class";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
+import type { ErrorList } from "./models/ErrorList.type";
 
 const TIMEOUT = 600000, SCOPE = "openid profile email";
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -169,27 +171,26 @@ interface AccessTokenQuery {
 const getAccessToken = (request: FastifyRequest<{ Querystring: AccessTokenQuery }>, reply: FastifyReply) => handleHttp(async () => {
     const { code, state, error } = request.query;
     const redirectUri = request.session.oauthRedirectUri, display = request.session.oauthDisplay;
+    const throwError = (code: ErrorList) => {
+        if (display)
+            throw new ApiError(code);
+        else
+            return redirectUri + "?code=" + code;
+    }
+
     delete request.session.oauthRedirectUri;
     delete request.session.oauthDisplay;
 
     const storedState = request.session.oauthState;
     if (!state || state !== storedState) {
         delete request.session.oauthState;
-
-        if (display)
-            throw new ApiError("stateMismatch");
-        else
-            return redirectUri + "?code=stateMismatch";
+        return throwError("stateMismatch");
     }
 
     delete request.session.oauthState;
 
-    if (error || !code || !redirectUri) {
-        if (display)
-            throw new ApiError("authenticationFailed");
-        else
-            return redirectUri + "?code=authenticationFailed";
-    }
+    if (error || !code || !redirectUri)
+        return throwError("authenticationFailed");
 
     const query = new URLSearchParams({
         grant_type: "authorization_code",
@@ -204,20 +205,24 @@ const getAccessToken = (request: FastifyRequest<{ Querystring: AccessTokenQuery 
         headers: {
             "Content-Type": "application/x-www-form-urlencoded"
         }
-    }), tokenData = await tokenRes.json() as { access_token: string, refresh_token: string, expires_in: number };
+    }), tokenData = await tokenRes.json() as { access_token: string, refresh_token: string };
+
+    const payload = jwt.verify(tokenData.access_token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
+    if (typeof payload === "string")
+        return throwError("authenticationFailed");
 
     if (display)
         return {
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
-            expires_in: tokenData.expires_in
+            expires_on: payload.exp ?? Date.now()
         };
     else {
         const resQuery = new URLSearchParams({
             code: "success",
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
-            expires_in: tokenData.expires_in.toString()
+            expires_on: (payload.exp ?? Date.now()).toString()
         });
 
         return redirectUri + "?" + resQuery.toString();
@@ -252,12 +257,16 @@ const refreshToken = (request: FastifyRequest<{ Body: RefreshTokenBody }>, reply
     if (tokenRes.status !== 200)
         throw new ApiError("unableToRefreshToken");
 
-    const tokenData = await tokenRes.json() as { access_token: string, refresh_token: string, expires_in: number };
+    const tokenData = await tokenRes.json() as { access_token: string, refresh_token: string };
+
+    const payload = jwt.verify(tokenData.access_token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
+    if (typeof payload === "string")
+        throw new ApiError("unableToRefreshToken");
 
     return {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in
+        expires_on: payload.exp ?? Date.now()
     };
 }, reply);
 
