@@ -240,7 +240,7 @@ const refreshToken = (request: FastifyRequest<{ Querystring: RefreshTokenQuery }
         throw new ApiError("missingData");
 
     const query = new URLSearchParams({
-        grant_type: "authorization_code",
+        grant_type: "refresh_token",
         refresh_token: request.query.refreshToken,
         scope: SCOPE,
         client_id: process.env.CASDOOR_CLIENT_ID!,
