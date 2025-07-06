@@ -100,7 +100,7 @@ async function getHistory(user: string, since: number) {
 function pushHistory(files: File[], message: string | null, sender: string | null, receiver: string | null) {
     client.query(
         "INSERT INTO history (files, message, sender, receiver, created_at) VALUES ($1, $2, $3, $4, NOW())",
-        [JSON.stringify(files), message, sender, receiver]
+        [JSON.stringify(files), message || null, sender || null, receiver || null]
     );
 }
 
