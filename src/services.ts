@@ -335,7 +335,7 @@ const getHistory = (request: FastifyRequest, reply: FastifyReply) => handleHttp(
 
     return rawData.map(t => ({
         id: t.id,
-        files: JSON.parse(t.files),
+        files: t.files,
         sender: {
             name: t.sender_name || "",
             avatar: t.sender_avatar || "",
