@@ -331,7 +331,23 @@ const getHistory = (request: FastifyRequest, reply: FastifyReply) => handleHttp(
     if (typeof payload === "string" || !payload.sub)
         throw new ApiError("unableToGetHistory");
 
-    return await dataLayer.getHistory(payload.sub, Date.now() - HISTORY_TTL);
+    const rawData = await dataLayer.getHistory(payload.sub, Date.now() - HISTORY_TTL);
+
+    return rawData.map(t => ({
+        id: t.id,
+        files: JSON.parse(t.files),
+        sender: {
+            name: t.sender_name || "",
+            avatar: t.sender_avatar || "",
+        },
+        receiver: {
+            name: t.receiver_name || "",
+            avatar: t.receiver_avatar || "",
+        },
+        message: t.message,
+        createdAt: t.created_at,
+        type: t.type
+    }));
 }, reply);
 
 const pushHistory = (request: FastifyRequest<{ Body: PushHistoryBody }>, reply: FastifyReply) => handleHttp(async () => {

@@ -89,8 +89,10 @@ function getBasicUserInfo(userId: string) {
 
 async function getHistory(user: string, since: number) {
     const query = await client.query(
-        `SELECT *, CASE WHEN sender = $1 THEN 'sender' WHEN receiver = $1 THEN 'receiver' END AS type
-        FROM history WHERE created_at > $2 AND (sender = $1 OR receiver = $1);`,
+        `SELECT h.*, su.name AS sender_name, su.avatar AS sender_avatar, ru.name AS receiver_name, ru.avatar AS receiver_avatar,
+        CASE WHEN h.sender = $1 THEN 'sender' WHEN h.receiver = $1 THEN 'receiver'
+        END AS type FROM history h LEFT JOIN "user" su ON h.sender::text = su.id LEFT JOIN "user" ru ON h.receiver::text = ru.id
+        WHERE h.created_at > $2 AND ( h.sender = $1 OR h.receiver = $1) ORDER BY h.created_at DESC`,
         [user, new Date(since)]
     );
 
