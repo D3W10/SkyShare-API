@@ -317,9 +317,9 @@ const getBasicUserInfo = (request: FastifyRequest<{ Querystring: GetBasicUserInf
 
 interface PushHistoryBody {
     files: File[];
-    message: string;
-    sender: string;
-    receiver: string;
+    message: string | null;
+    sender: string | null;
+    receiver: string | null;
 }
 
 const getHistory = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
@@ -338,7 +338,7 @@ const pushHistory = (request: FastifyRequest<{ Body: PushHistoryBody }>, reply: 
     const { files, message, sender, receiver } = request.body;
 
     const token = getToken(request);
-    if (!token)
+    if (!token || (!sender && !receiver))
         throw new ApiError("missingData");
 
     const payload = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
