@@ -12,5 +12,6 @@ export const errorMapper: Record<ErrorList, ErrorCause> = {
     stateMismatch: "forbiddenError",
     authenticationFailed: "userError",
     unableToRefreshToken: "userError",
+    unableToPushToHistory: "userError",
     unknown: "serverError"
 };

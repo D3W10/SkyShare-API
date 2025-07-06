@@ -29,6 +29,8 @@ fastify.register(async fastify => {
     fastify.get(BASE_ROUTE + "/refresh", services.refreshToken);
     fastify.get(BASE_ROUTE + "/credentials", services.getCredentials);
     fastify.get(BASE_ROUTE + "/user/info", services.getBasicUserInfo);
+    fastify.get(BASE_ROUTE + "/history", services.getHistory);
+    fastify.post(BASE_ROUTE + "/history", services.pushHistory);
 });
 
 fastify.listen({ port: 8020, host: "0.0.0.0" }, err => {

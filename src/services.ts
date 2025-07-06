@@ -6,9 +6,11 @@ import ApiError from "./models/ApiError.class";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
 import type { ErrorList } from "./models/ErrorList.type";
+import type { File } from "./models/File.interface";
 
-const TIMEOUT = 600000, SCOPE = "openid profile email";
+const TIMEOUT = 600000, SCOPE = "profile email", HISTORY_TTL = 2629746000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const getToken = (request: FastifyRequest) => request.headers["Authorization"] ? (Array.isArray(request.headers["Authorization"]) ? request.headers["Authorization"][0] : request.headers["Authorization"]).split(" ")[1] : undefined;
 
 function parseMsg<T = { [key: string]: any }>(msg: string) {
     let json: { type: string, data: T };
@@ -313,6 +315,41 @@ const getBasicUserInfo = (request: FastifyRequest<{ Querystring: GetBasicUserInf
     return data.rows.length > 0 ? data.rows[0] : {};
 }, reply);
 
+interface PushHistoryBody {
+    files: File[];
+    message: string;
+    sender: string;
+    receiver: string;
+}
+
+const getHistory = (request: FastifyRequest, reply: FastifyReply) => handleHttp(async () => {
+    const token = getToken(request);
+    if (!token)
+        throw new ApiError("missingData");
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
+    if (typeof payload === "string" || !payload.sub)
+        throw new ApiError("missingData");
+
+    return await dataLayer.getHistory(payload.sub, Date.now() - HISTORY_TTL);
+}, reply);
+
+const pushHistory = (request: FastifyRequest<{ Body: PushHistoryBody }>, reply: FastifyReply) => handleHttp(async () => {
+    const { files, message, sender, receiver } = request.body;
+
+    const token = getToken(request);
+    if (!token)
+        throw new ApiError("missingData");
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
+    if (typeof payload === "string" || payload.sub !== sender)
+        throw new ApiError("unableToPushToHistory");
+
+    dataLayer.pushHistory(files, message, sender, receiver);
+
+    return {};
+}, reply);
+
 export default {
     createTransfer,
     checkTransfer,
@@ -322,5 +359,7 @@ export default {
     initiateSignup,
     refreshToken,
     getCredentials,
-    getBasicUserInfo
+    getBasicUserInfo,
+    getHistory,
+    pushHistory
 }

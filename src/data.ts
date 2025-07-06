@@ -1,4 +1,5 @@
 import { Client, type Notification } from "pg";
+import type { File } from "./models/File.interface";
 
 type Peers = "sender" | "receiver";
 
@@ -86,6 +87,23 @@ function getBasicUserInfo(userId: string) {
     );
 }
 
+async function getHistory(user: string, since: number) {
+    const query = await client.query(
+        `SELECT *, CASE WHEN sender = $1 THEN 'sender' WHEN receiver = $1 THEN 'receiver' END AS type
+        FROM history WHERE created_at > $2 AND (sender = $1 OR receiver = $1);`,
+        [user, new Date(since)]
+    );
+
+    return query.rows;
+}
+
+function pushHistory(files: File[], message: string, sender: string, receiver: string) {
+    client.query(
+        "INSERT INTO history (files, message, sender, receiver, created_at) VALUES ($1, $2, $3, $4, NOW())",
+        [files, message, sender, receiver]
+    );
+}
+
 export default {
     createTransfer,
     hasTransfer,
@@ -97,5 +115,7 @@ export default {
     removeTransfer,
     subscribe,
     notify,
-    getBasicUserInfo
+    getBasicUserInfo,
+    getHistory,
+    pushHistory
 }
