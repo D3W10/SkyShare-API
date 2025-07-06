@@ -10,7 +10,7 @@ import type { File } from "./models/File.interface";
 
 const TIMEOUT = 600000, SCOPE = "profile email", HISTORY_TTL = 2629746000;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-const getToken = (request: FastifyRequest) => request.headers["Authorization"] ? (Array.isArray(request.headers["Authorization"]) ? request.headers["Authorization"][0] : request.headers["Authorization"]).split(" ")[1] : undefined;
+const getToken = (request: FastifyRequest) => request.headers.authorization ? request.headers.authorization.split(" ")[1] : undefined;
 
 function parseMsg<T = { [key: string]: any }>(msg: string) {
     let json: { type: string, data: T };
@@ -329,7 +329,7 @@ const getHistory = (request: FastifyRequest, reply: FastifyReply) => handleHttp(
 
     const payload = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
     if (typeof payload === "string" || !payload.sub)
-        throw new ApiError("missingData");
+        throw new ApiError("unableToGetHistory");
 
     return await dataLayer.getHistory(payload.sub, Date.now() - HISTORY_TTL);
 }, reply);
