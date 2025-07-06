@@ -29,8 +29,6 @@ export async function handleHttp(func: () => Promise<{ [key: string]: any } | st
     try {
         const data = await func();
 
-        reply.header("Access-Control-Allow-Origin", "*");
-
         if (typeof data !== "string")
             reply.send({ code: "success", data } satisfies ApiReply);
         else
@@ -41,7 +39,6 @@ export async function handleHttp(func: () => Promise<{ [key: string]: any } | st
         const httpCode = apiError ? httpCodeMap[errorMapper[err.code]] : 500;
 
         console.error(err);
-        reply.header("Access-Control-Allow-Origin", "*");
         reply.code(httpCode).send({ code: apiError ? err.code : "unknown" } satisfies ApiReply);
     }
     finally {

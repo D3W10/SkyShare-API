@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { fastifyWebsocket } from "@fastify/websocket";
+import { fastifyCors } from "@fastify/cors";
 import { fastifyCookie } from "@fastify/cookie";
 import { fastifySession } from "@fastify/session";
 import services from "./src/services";
@@ -8,6 +9,10 @@ const BASE_ROUTE = "/api/v1";
 const fastify = Fastify({ trustProxy: true });
 
 fastify.register(fastifyWebsocket);
+fastify.register(fastifyCors, {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+});
 fastify.register(fastifyCookie);
 fastify.register(fastifySession as any, {
     secret: process.env.SESSION_SECRET,
