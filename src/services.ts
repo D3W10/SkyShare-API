@@ -315,6 +315,27 @@ const getBasicUserInfo = (request: FastifyRequest<{ Querystring: GetBasicUserInf
     return data.rows.length > 0 ? data.rows[0] : {};
 }, reply);
 
+interface UpdateUserInfoBody {
+    username?: string;
+    email?: string;
+}
+
+const updateUserInfo = (request: FastifyRequest<{ Body: UpdateUserInfoBody }>, reply: FastifyReply) => handleHttp(async () => {
+    const { username, email } = request.body;
+
+    const token = getToken(request);
+    if (!token)
+        throw new ApiError("missingData");
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ["RS256"], });
+    if (typeof payload === "string" || !payload.sub)
+        throw new ApiError("unableToUpdateUserInfo");
+
+    await dataLayer.updateUserInfo(payload.sub, username, email);
+
+    return { username, email };
+}, reply);
+
 interface PushHistoryBody {
     files: File[];
     message: string | null;
@@ -376,6 +397,7 @@ export default {
     refreshToken,
     getCredentials,
     getBasicUserInfo,
+    updateUserInfo,
     getHistory,
     pushHistory
 }

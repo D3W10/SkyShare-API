@@ -87,6 +87,31 @@ function getBasicUserInfo(userId: string) {
     );
 }
 
+function updateUserInfo(userId: string, username?: string, email?: string) {
+    let idx = 1;
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (username !== undefined) {
+        fields.push(`name = $${idx++}`);
+        values.push(username);
+    }
+    if (email !== undefined) {
+        fields.push(`email = $${idx++}`);
+        values.push(email);
+    }
+
+    if (fields.length === 0)
+        return;
+
+    values.push(userId);
+
+    return client.query(
+        `UPDATE "user" SET ${fields.join(", ")} WHERE id = $${idx}`,
+        values
+    );
+}
+
 async function getHistory(user: string, since: number) {
     const query = await client.query(
         `SELECT h.*, su.name AS sender_name, su.avatar AS sender_avatar, ru.name AS receiver_name, ru.avatar AS receiver_avatar,
@@ -118,6 +143,7 @@ export default {
     subscribe,
     notify,
     getBasicUserInfo,
+    updateUserInfo,
     getHistory,
     pushHistory
 }

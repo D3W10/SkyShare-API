@@ -34,6 +34,7 @@ fastify.register(async fastify => {
     fastify.get(BASE_ROUTE + "/refresh", services.refreshToken);
     fastify.get(BASE_ROUTE + "/credentials", services.getCredentials);
     fastify.get(BASE_ROUTE + "/user/info", services.getBasicUserInfo);
+    fastify.put(BASE_ROUTE + "/user/info", services.updateUserInfo);
     fastify.get(BASE_ROUTE + "/history", services.getHistory);
     fastify.post(BASE_ROUTE + "/history", services.pushHistory);
 });

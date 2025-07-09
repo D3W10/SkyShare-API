@@ -9,6 +9,7 @@ export type ErrorList =
     "stateMismatch" |
     "authenticationFailed" |
     "unableToRefreshToken" |
+    "unableToUpdateUserInfo" |
     "unableToGetHistory" |
     "unableToPushToHistory" |
     "unknown";
