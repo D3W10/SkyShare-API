@@ -1,0 +1,1 @@
+export type ErrorCause = "success" | "userError" | "forbiddenError" | "serverError";

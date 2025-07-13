@@ -33,23 +33,23 @@
 
 ## About
 
-SkyShare API is the interface that provides services that the SkyShare products rely on to work properly. This includes all account related options and the file sharing service.
+SkyShare API is the interface that provides services used by the SkyShare apps in order to work properly.
+
 
 This project consists in four different subprojects:
 > 🖥️&emsp;SkyShare [Desktop App](https://github.com/D3W10/SkyShare)
 >
 > 🔌&emsp;SkyShare [API](https://github.com/D3W10/SkyShare-API)
 >
-> 🌐&emsp;SkyShare [Website](https://github.com/D3W10/SkyShare-Website)
->
-> 📩&emsp;SkyShare [Mail](https://github.com/D3W10/SkyShare-Mail)
+> 🌐&emsp;SkyShare [Web App](https://github.com/D3W10/SkyShare-Web)
 
 <br />
 
 ### Built With
 
 - [TypeScript](https://www.typescriptlang.org/)
-- [SvelteKit](https://kit.svelte.dev/)
+- [Fastify](https://fastify.dev/)
+- WebSockets
 
 <br />
 <br />
@@ -64,7 +64,7 @@ If you want to deploy a copy of SkyShare API on your device to develop a feature
 
 In order to run the api, you will need the following tools:
 - Node.JS (`20.0.0` or higher);
-- npm (or equivalent);
+- bun (or equivalent);
 - git (*optional*).
 
 <br />
@@ -78,11 +78,11 @@ In order to run the api, you will need the following tools:
 2. Open the project folder using your prefered code editor (ex: VS Code)
 3. Install the required dependencies
     ```sh
-    npm i
+    bun i
     ```
 4. On the project root run the following command to run the api
     ```sh
-    npm run dev
+    bun run dev
     ```
 
 <br />
@@ -97,4 +97,5 @@ Distributed under the Mozilla Public License 2.0. Check `LICENSE` for more detai
 
 ## Credits
 
-- Made by [Daniel Nunes](https://d3w10.netlify.app/)
+- [Daniel Nunes](https://d3w10.netlify.app/)
+- Mihail Arcus
