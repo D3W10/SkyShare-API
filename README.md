@@ -2,7 +2,7 @@
 <br />
 <div align="center">
     <a href="https://github.com/D3W10/SkyShare-API">
-        <img src="https://raw.githubusercontent.com/D3W10/SkyShare/main/svelte/static/logo.png" alt="Logo" width="60" height="60">
+        <img src="https://raw.githubusercontent.com/D3W10/SkyShare/main/static/logo.svg" alt="Logo" width="60" height="60">
     </a>
     <br />
     <br />
